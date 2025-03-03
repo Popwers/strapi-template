@@ -1,0 +1,15 @@
+services:
+  strapi-cms:
+    build:
+      context: .
+      args:
+        NODE_ENV: development
+    volumes:
+      - ./config:/opt/app/config
+      - ./src:/opt/app/src
+      - ./types:/opt/app/types
+      - ./.env:/opt/app/.env
+      # PRESERVE NODE_MODULES AND PLUGINS DIST
+      - /opt/app/node_modules
+      - /opt/app/src/plugins/qcm-flow/node_modules
+      - /opt/app/src/plugins/qcm-flow/dist

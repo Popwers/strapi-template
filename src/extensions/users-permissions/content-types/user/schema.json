@@ -1,0 +1,76 @@
+{
+	"kind": "collectionType",
+	"collectionName": "up_users",
+	"info": {
+		"name": "user",
+		"description": "",
+		"singularName": "user",
+		"pluralName": "users",
+		"displayName": "Utilisateur"
+	},
+	"options": {
+		"draftAndPublish": false
+	},
+	"attributes": {
+		"username": {
+			"type": "string",
+			"minLength": 3,
+			"unique": false,
+			"configurable": false
+		},
+		"email": {
+			"type": "email",
+			"minLength": 6,
+			"required": true,
+			"unique": true,
+			"configurable": false
+		},
+		"provider": {
+			"type": "string",
+			"configurable": false
+		},
+		"password": {
+			"type": "password",
+			"minLength": 6,
+			"private": true,
+			"searchable": false,
+			"configurable": false
+		},
+		"resetPasswordToken": {
+			"type": "string",
+			"private": true,
+			"searchable": false,
+			"configurable": false
+		},
+		"confirmationToken": {
+			"type": "string",
+			"private": true,
+			"searchable": false,
+			"configurable": false
+		},
+		"confirmed": {
+			"type": "boolean",
+			"default": false,
+			"configurable": false
+		},
+		"blocked": {
+			"type": "boolean",
+			"default": false,
+			"configurable": false
+		},
+		"role": {
+			"type": "relation",
+			"relation": "manyToOne",
+			"target": "plugin::users-permissions.role",
+			"inversedBy": "users",
+			"configurable": false
+		},
+		"avatar": {
+			"type": "media",
+			"multiple": false,
+			"required": false,
+			"allowedTypes": ["images"],
+			"configurable": false
+		}
+	}
+}

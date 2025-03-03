@@ -1,36 +1,67 @@
 {
-  "name": "my-strapi-project",
-  "version": "0.1.0",
+  "name": "strapi-template",
   "private": true,
-  "description": "A Strapi application",
+  "version": "0.1.0",
+  "description": "Strapi CMS",
   "scripts": {
-    "build": "strapi build",
-    "deploy": "strapi deploy",
-    "develop": "strapi develop",
+    "dev": "strapi develop",
     "start": "strapi start",
-    "strapi": "strapi"
+    "build": "strapi build",
+    "strapi": "strapi",
+    "gen:types": "strapi ts:generate-types --debug",
+    "prepare": "husky || true",
+    "upgrade": "npx @strapi/upgrade latest"
   },
   "dependencies": {
-    "@strapi/plugin-cloud": "5.10.4",
+    "@aws-sdk/client-s3": "^3.758.0",
+    "@strapi/plugin-sentry": "5.10.4",
     "@strapi/plugin-users-permissions": "5.10.4",
+    "@strapi/provider-email-nodemailer": "5.10.4",
     "@strapi/strapi": "5.10.4",
-    "better-sqlite3": "11.3.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "mysql2": "^3.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-router-dom": "^6.0.0",
-    "styled-components": "^6.0.0"
+    "sharp": "^0.33.5",
+    "styled-components": "^6.1.15",
+    "typescript": "^5"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5"
+    "husky": "^9.1.7",
+    "semantic-release": "^24.2.3"
+  },
+  "author": {
+    "name": "Lionel Bataille"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
   },
   "strapi": {
-    "uuid": "d124490a-88ab-4720-a97f-a18a1690daa9"
+    "uuid": ""
+  },
+  "release": {
+    "branch": "main",
+    "repositoryUrl": "https://github.com/your-repo",
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/changelog",
+      "@semantic-release/git",
+      [
+        "@semantic-release/github",
+        {
+          "successComment": false
+        }
+      ]
+    ]
   }
 }
