@@ -23,7 +23,9 @@ This project is fully containerized using Docker, which simplifies the setup pro
 
 2. Create a `.env` file in the root directory and configure your environment variables (see `.env.example` for required variables).
 
-3. Start the application:
+3. Run the `generate-keys.sh` script to get fresh keys for Strapi
+
+4. Start the application:
 
    For production:
    ```bash
