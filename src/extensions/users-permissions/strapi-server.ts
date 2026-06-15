@@ -4,7 +4,7 @@ const notAllowedFields = ['provider', 'confirmed', 'blocked', 'role'];
 
 const notAllowedFieldsContentManager = ['provider', 'role'];
 
-export default async plugin => {
+export default async (plugin) => {
 	const contentManagerUserCreateController = plugin.controllers.contentmanageruser.create;
 	const createUserController = plugin.controllers.user.create;
 
@@ -23,7 +23,7 @@ export default async plugin => {
 	 * Add a default role and username to the user on creation
 	 * @param ctx
 	 */
-	plugin.controllers.contentmanageruser.create = async ctx => {
+	plugin.controllers.contentmanageruser.create = async (ctx) => {
 		const sanitizedUser = await sanitizeUser(ctx);
 		if (!sanitizedUser) return ctx.badRequest('Default role not found');
 
@@ -37,7 +37,7 @@ export default async plugin => {
 	 * Add a default role and username to the user on creation
 	 * @param ctx
 	 */
-	plugin.controllers.user.create = async ctx => {
+	plugin.controllers.user.create = async (ctx) => {
 		const sanitizedUser = await sanitizeUser(ctx);
 		if (!sanitizedUser) return ctx.badRequest('Default role not found');
 
@@ -51,10 +51,10 @@ export default async plugin => {
 	 * Add a default role and username to the user on creation
 	 * @param ctx
 	 */
-	plugin.controllers.auth = ({ strapi }) => {
+	plugin.controllers.auth = ({ strapi: _strapi }) => {
 		return {
 			...initialAuthController,
-			register: async ctx => {
+			register: async (ctx) => {
 				const sanitizedUser = await sanitizeUser(ctx);
 				if (!sanitizedUser) return ctx.badRequest('Default role not found');
 
@@ -69,10 +69,10 @@ export default async plugin => {
 	/**
 	 * Prevent user to update certain fields by removing them from the request body
 	 */
-	plugin.controllers.contentmanageruser.update = async ctx => {
+	plugin.controllers.contentmanageruser.update = async (ctx) => {
 		const { body } = ctx.request;
 		const sanitizedBody = Object.fromEntries(
-			Object.entries(body).filter(([key]) => !notAllowedFieldsContentManager.includes(key))
+			Object.entries(body).filter(([key]) => !notAllowedFieldsContentManager.includes(key)),
 		);
 
 		ctx.request.body = sanitizedBody;
@@ -83,10 +83,10 @@ export default async plugin => {
 	/**
 	 * Prevent user to update certain fields by removing them from the request body
 	 */
-	plugin.controllers.user.update = async ctx => {
+	plugin.controllers.user.update = async (ctx) => {
 		const { body } = ctx.request;
 		const sanitizedBody = Object.fromEntries(
-			Object.entries(body).filter(([key]) => !notAllowedFields.includes(key))
+			Object.entries(body).filter(([key]) => !notAllowedFields.includes(key)),
 		);
 
 		ctx.request.body = sanitizedBody;
@@ -98,7 +98,7 @@ export default async plugin => {
 	 * Update the avatar of the user
 	 * @param ctx
 	 */
-	plugin.controllers.user.updateAvatar = async ctx => {
+	plugin.controllers.user.updateAvatar = async (ctx) => {
 		const authUser = ctx.state.user;
 
 		if (!authUser) {
@@ -176,23 +176,18 @@ export default async plugin => {
 	 */
 
 	/**
-	 * Check if the user is the owner of the user or an admin to update the user
+	 * Check if the user is the owner of the targeted user or an admin.
 	 * @param ctx
-	 * @returns
+	 * @returns boolean - Strapi's policy engine turns a falsy result into a 403,
+	 * so denials must return `false` (not `ctx.unauthorized()`, whose body is discarded).
 	 */
-	plugin.policies.isOwnerOrAdmin = ctx => {
+	plugin.policies.isOwnerOrAdmin = (ctx) => {
 		const { id } = ctx.params;
 		const authUser = ctx.state.user;
 
-		if (!authUser) {
-			return ctx.unauthorized();
-		}
+		if (!authUser) return false;
 
-		if (ctx.state.user.role.type === 'admin' || ctx.state.user.id === Number.parseInt(id, 10)) {
-			return true;
-		}
-
-		return false;
+		return authUser.role.type === 'admin' || authUser.id === Number.parseInt(id, 10);
 	};
 
 	/**
@@ -217,7 +212,7 @@ export default async plugin => {
 	 * Add the policy to the update user route
 	 */
 	plugin.routes['content-api'].routes.find(
-		route => route.method === 'PUT' && route.path === '/users/:id'
+		(route) => route.method === 'PUT' && route.path === '/users/:id',
 	).config.policies = ['isOwnerOrAdmin'];
 
 	/**
@@ -227,12 +222,15 @@ export default async plugin => {
 	 */
 
 	/**
-	 * Helper to create a user
+	 * Rebuild the registration body from scratch so client-supplied values never
+	 * reach the DB. This is the counterpart of `register.allowedFields: ['role']`
+	 * in config/plugins.ts: the field is whitelisted there only because we force
+	 * the role to the default here. Removing this helper re-opens role self-assignment.
 	 * @param ctx
 	 * @returns object | false
 	 */
-	const sanitizeUser = async ctx => {
-		// Generate random username and get the default role
+	const sanitizeUser = async (ctx) => {
+		// Generate placeholder username and get the default role
 		const username = generateUser();
 		const defaultRole = await strapi.query('plugin::users-permissions.role').findOne({
 			where: { type: 'authenticated' },
