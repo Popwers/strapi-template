@@ -1,38 +1,55 @@
 #!/bin/sh
 
-# Function to check and generate a key if it doesn't exist
-generate_if_missing() {
-    local KEY_NAME=$1
-    local ENV_FILE=".env"
+ENV_FILE=".env"
 
-    # Check if .env exists
+# Generate a single base64 secret.
+generate_secret() {
+    openssl rand -base64 16
+}
+
+# Generate the APP_KEYS value: 4 comma-separated base64 secrets (Strapi expects a list).
+generate_app_keys() {
+    printf '%s,%s,%s,%s' "$(generate_secret)" "$(generate_secret)" "$(generate_secret)" "$(generate_secret)"
+}
+
+# Write KEY=VALUE into .env, replacing an existing line or appending a new one.
+write_key() {
+    KEY_NAME=$1
+    NEW_VALUE=$2
+
+    if grep -q "^${KEY_NAME}=" "$ENV_FILE"; then
+        # macOS sed needs an explicit empty backup suffix; GNU sed does not.
+        case "$(uname)" in
+            Darwin) sed -i '' "s|^${KEY_NAME}=.*|${KEY_NAME}=${NEW_VALUE}|" "$ENV_FILE" ;;
+            *) sed -i "s|^${KEY_NAME}=.*|${KEY_NAME}=${NEW_VALUE}|" "$ENV_FILE" ;;
+        esac
+    else
+        echo "${KEY_NAME}=${NEW_VALUE}" >> "$ENV_FILE"
+    fi
+}
+
+# Generate a key only if it is missing or empty in .env.
+generate_if_missing() {
+    KEY_NAME=$1
+
     if [ ! -f "$ENV_FILE" ]; then
         echo "Error: .env file not found"
         exit 1
     fi
 
-    # Read current value from .env
-    local CURRENT_VALUE=$(grep "^${KEY_NAME}=" "$ENV_FILE" | cut -d '=' -f2)
+    # -f2- keeps everything after the first '=' so base64 padding / commas survive.
+    CURRENT_VALUE=$(grep "^${KEY_NAME}=" "$ENV_FILE" | cut -d '=' -f2-)
 
-    # If empty or not set, generate and add to .env
     if [ -z "$CURRENT_VALUE" ]; then
-        local NEW_VALUE=$(openssl rand -base64 16)
-
-        # If key exists but empty, replace the line
-        if grep -q "^${KEY_NAME}=" "$ENV_FILE"; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                # macOS
-                sed -i '' "s|^${KEY_NAME}=.*|${KEY_NAME}=${NEW_VALUE}|" "$ENV_FILE"
-            else
-                # Linux
-                sed -i "s|^${KEY_NAME}=.*|${KEY_NAME}=${NEW_VALUE}|" "$ENV_FILE"
-            fi
+        if [ "$KEY_NAME" = "APP_KEYS" ]; then
+            NEW_VALUE=$(generate_app_keys)
         else
-            # If key doesn't exist, append it
-            echo "${KEY_NAME}=${NEW_VALUE}" >> "$ENV_FILE"
+            NEW_VALUE=$(generate_secret)
         fi
 
-        echo "Generated ${KEY_NAME}=${NEW_VALUE}"
+        write_key "$KEY_NAME" "$NEW_VALUE"
+        # Never print the value itself — it would leak into shell history and CI logs.
+        echo "Generated ${KEY_NAME} (value written to .env)"
     else
         echo "${KEY_NAME} already exists in .env"
     fi
