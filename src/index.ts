@@ -1,7 +1,9 @@
-import { execSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import fs from 'node:fs';
+
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Core } from '@strapi/strapi';
+
 import sendError from './sentry';
 
 export default {
@@ -11,7 +13,7 @@ export default {
 	 *
 	 * This gives you an opportunity to extend code.
 	 */
-	register({ strapi }: { strapi: Core.Strapi }) {},
+	register(_context: { strapi: Core.Strapi }) {},
 
 	/**
 	 * An asynchronous bootstrap function that runs before
@@ -68,18 +70,28 @@ export default {
 
 						strapi.log.info('Starting backup process...');
 
-						// Create MySQL database dump
+						// Create PostgreSQL database dump
 						strapi.log.info('Creating database dump...');
-						execSync(
-							`mysqldump --host=${process.env.DATABASE_HOST} --port=${process.env.DATABASE_PORT} --user=${process.env.DATABASE_USERNAME} ${process.env.DATABASE_NAME} > ${DB_BACKUP_FILE}`,
+						// execFileSync (no shell) so env values are passed as plain arguments.
+						execFileSync(
+							'pg_dump',
+							[
+								`--host=${process.env.DATABASE_HOST}`,
+								`--port=${process.env.DATABASE_PORT}`,
+								`--username=${process.env.DATABASE_USERNAME}`,
+								'--no-owner',
+								'--no-privileges',
+								`--file=${DB_BACKUP_FILE}`,
+								process.env.DATABASE_NAME,
+							],
 							{
 								stdio: 'inherit',
 								timeout: 300000,
 								env: {
 									...process.env,
-									MYSQL_PWD: process.env.DATABASE_PASSWORD,
+									PGPASSWORD: process.env.DATABASE_PASSWORD,
 								},
-							}
+							},
 						);
 
 						// Export Strapi data
@@ -102,7 +114,7 @@ export default {
 									Key: BACKUP_FILE,
 									Body: strapiBackup,
 									ContentType: 'application/gzip',
-								})
+								}),
 							),
 							s3Client.send(
 								new PutObjectCommand({
@@ -110,7 +122,7 @@ export default {
 									Key: DB_BACKUP_FILE,
 									Body: dbBackup,
 									ContentType: 'application/sql',
-								})
+								}),
 							),
 						]);
 
