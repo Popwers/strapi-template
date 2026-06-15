@@ -8,7 +8,7 @@
     "start": "strapi start",
     "build": "strapi build",
     "strapi": "strapi",
-    "test": "test -d tests && bun test || echo 'no tests found, skipping'",
+    "test": "bun test",
     "gen:types": "strapi ts:generate-types --debug",
     "upgrade": "npx @strapi/upgrade latest"
   },
