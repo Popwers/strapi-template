@@ -1,31 +1,67 @@
+# Dependencies
 node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
 dist
+build
+.tmp
+.cache
+
+# Docker files
 Dockerfile*
 docker-compose*
 .dockerignore
+
+# Version control
 .git
-.env*
 .gitignore
+.github
+
+# Documentation
 README.md
 CHANGELOG.md
-commitlint.config.js
 LICENSE
-.vscode
-Makefile
-helm-charts
-biome.json
+
+# Configuration files (not needed in container)
 .editorconfig
-.idea
-coverage*
-.prettierrc
-.prettierignore
-.github
+vite.config.ts
+.vite-hooks
+
+# IDE files
 .vscode
+.idea
+
+# Environment files
+.env.*
+
+# OS files
 .DS_Store
-.tmp
-.cache
-.git
+Thumbs.db
+
+# Logs
 *.log
-build
+logs
+
+# Test and coverage
+coverage*
+tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Data and backups
 data
 backup
+
+# Strapi specific
+.strapi
+.strapi-updater.json
+.strapi-cloud.json
+types/generated
+exports
+license.txt

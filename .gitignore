@@ -130,3 +130,6 @@ build
 .strapi-updater.json
 .strapi-cloud.json
 types/generated/*
+
+# Vite+ git hooks
+.vite-hooks/
