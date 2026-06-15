@@ -1,4 +1,4 @@
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
@@ -97,7 +97,9 @@ export default {
 						// Export Strapi data
 						strapi.log.info('Exporting Strapi data...');
 
-						execSync(`strapi export --no-encrypt -f ${EXPORT_FILE_NAME}`, {
+						// execFileSync (no shell) so the filename is never interpreted by /bin/sh,
+						// matching the pg_dump call above and removing a latent injection sink.
+						execFileSync('strapi', ['export', '--no-encrypt', '-f', EXPORT_FILE_NAME], {
 							stdio: 'inherit',
 							timeout: 300000,
 						});
