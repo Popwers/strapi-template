@@ -13,17 +13,17 @@
     "upgrade": "npx @strapi/upgrade latest"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.969.0",
+    "@aws-sdk/client-s3": "^3.1068.0",
     "@strapi/plugin-sentry": "5.48.0",
     "@strapi/plugin-users-permissions": "5.48.0",
     "@strapi/provider-email-nodemailer": "5.48.0",
     "@strapi/strapi": "5.48.0",
-    "pg": "^8.13.1",
+    "pg": "^8.21.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.0.0",
     "sharp": "^0.34.5",
-    "styled-components": "^6.3.6",
+    "styled-components": "^6.4.2",
     "typescript": "^5"
   },
   "devDependencies": {
@@ -32,8 +32,8 @@
     "@types/node": "^25",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "semantic-release": "^25.0.2",
-    "vite-plus": "^0.1.22"
+    "semantic-release": "^25.0.5",
+    "vite-plus": "^0.1.24"
   },
   "author": {
     "name": "Lionel Bataille"
@@ -61,5 +61,5 @@
       ]
     ]
   },
-  "packageManager": "npm@11.16.0"
+  "packageManager": "npm@11.17.0"
 }
