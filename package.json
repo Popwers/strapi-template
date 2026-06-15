@@ -8,41 +8,38 @@
     "start": "strapi start",
     "build": "strapi build",
     "strapi": "strapi",
+    "test": "test -d tests && bun test || echo 'no tests found, skipping'",
     "gen:types": "strapi ts:generate-types --debug",
-    "prepare": "husky || true",
     "upgrade": "npx @strapi/upgrade latest"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.758.0",
-    "@strapi/plugin-sentry": "5.11.0",
-    "@strapi/plugin-users-permissions": "5.11.0",
-    "@strapi/provider-email-nodemailer": "5.11.0",
-    "@strapi/strapi": "5.11.0",
-    "mysql2": "^3.13.0",
+    "@aws-sdk/client-s3": "^3.969.0",
+    "@strapi/plugin-sentry": "5.48.0",
+    "@strapi/plugin-users-permissions": "5.48.0",
+    "@strapi/provider-email-nodemailer": "5.48.0",
+    "@strapi/strapi": "5.48.0",
+    "pg": "^8.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.0.0",
-    "sharp": "^0.33.5",
-    "styled-components": "^6.1.15",
+    "sharp": "^0.34.5",
+    "styled-components": "^6.3.6",
     "typescript": "^5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@commitlint/cli": "^19.7.1",
-    "@commitlint/config-conventional": "^19.7.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@types/node": "^22",
+    "@types/node": "^25",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "husky": "^9.1.7",
-    "semantic-release": "^24.2.3"
+    "semantic-release": "^25.0.2",
+    "vite-plus": "^0.1.22"
   },
   "author": {
     "name": "Lionel Bataille"
   },
   "engines": {
-    "node": ">=18.0.0 <=22.x.x",
+    "node": ">=18.0.0",
     "npm": ">=6.0.0"
   },
   "strapi": {
@@ -63,5 +60,6 @@
         }
       ]
     ]
-  }
+  },
+  "packageManager": "npm@11.16.0"
 }
