@@ -13,7 +13,7 @@
     "upgrade": "npx @strapi/upgrade latest"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1068.0",
+    "@aws-sdk/client-s3": "^3.1069.0",
     "@strapi/plugin-sentry": "5.48.0",
     "@strapi/plugin-users-permissions": "5.48.0",
     "@strapi/provider-email-nodemailer": "5.48.0",
