@@ -40,6 +40,29 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     npm ci --omit=dev --prefer-offline --no-audit
 
+# @strapi/strapi declares the admin-panel toolchain as *runtime* dependencies,
+# but `strapi build` bakes the whole admin SPA into dist/build as static assets,
+# so the Node server never loads these at boot or on any API route (verified:
+# boots healthy, /admin + its 5.6 MB bundle serve, content-manager API resolves).
+# They fall into two buckets, both build-only:
+#   - bundlers / transpilers: @swc, webpack, esbuild-loader, lightningcss, typescript
+#   - admin SPA libs already compiled into dist/build: @formatjs, @reduxjs,
+#     @shikijs, hls.js, @mux, core-js-pure
+# Pruning them trims ~255 MB. Re-validate this list after a Strapi major upgrade.
+RUN rm -rf \
+    node_modules/@swc \
+    node_modules/@formatjs \
+    node_modules/@reduxjs \
+    node_modules/@shikijs \
+    node_modules/@mux \
+    node_modules/hls.js \
+    node_modules/core-js-pure \
+    node_modules/webpack \
+    node_modules/esbuild-loader \
+    node_modules/typescript \
+    node_modules/lightningcss \
+    node_modules/lightningcss-*
+
 # --- dev_runtime: target used by docker-compose.dev.yml (hot reload) --------
 # Volume mounts override /opt/app/{src,config,database,types,.env} at runtime,
 # so this stage just needs full node_modules + source for first boot.
