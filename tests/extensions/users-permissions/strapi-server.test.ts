@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
+import extension from '../../../src/extensions/users-permissions/strapi-server.js';
+
+type Route = { method: string; path: string; config: { policies?: string[] } };
+
 const mockPlugin = () => ({
 	controllers: {
 		contentmanageruser: { create: async () => {}, update: async () => {} },
@@ -9,18 +13,18 @@ const mockPlugin = () => ({
 	policies: {} as Record<string, (ctx: unknown) => boolean>,
 	routes: {
 		'content-api': {
-			routes: [{ method: 'PUT', path: '/users/:id', config: {} as { policies?: string[] } }],
+			routes: [{ method: 'PUT', path: '/users/:id', config: {} as { policies?: string[] } }] as Route[],
 		},
 	},
 });
 
-// strapi-server reads the `strapi` global when wiring controllers.
+// strapi-server only reads the `strapi` global once its exported factory is
+// called (inside each test below), never at module-evaluation time, so it's
+// safe to set this mock up after the static import above.
 (globalThis as { strapi?: unknown }).strapi = {
 	query: () => ({ findOne: async () => ({ id: 1, type: 'authenticated' }) }),
 	plugin: () => ({ service: () => ({}) }),
 };
-
-const extension = (await import('../../../src/extensions/users-permissions/strapi-server')).default;
 
 describe('isOwnerOrAdmin policy', () => {
 	const policyCtx = (user: unknown, id: string) => ({ params: { id }, state: { user } });
@@ -51,7 +55,7 @@ describe('isOwnerOrAdmin policy', () => {
 	test('attaches the policy to PUT /users/:id', async () => {
 		const plugin = await extension(mockPlugin());
 		const route = plugin.routes['content-api'].routes.find(
-			(r) => r.method === 'PUT' && r.path === '/users/:id',
+			(r: Route) => r.method === 'PUT' && r.path === '/users/:id',
 		);
 		expect(route?.config.policies).toEqual(['isOwnerOrAdmin']);
 	});

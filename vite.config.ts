@@ -92,8 +92,8 @@ export default defineConfig({
 			'**/types/generated/**',
 		],
 		options: {
-			typeAware: false,
-			typeCheck: false,
+			typeAware: true,
+			typeCheck: true,
 		},
 		// Curated overrides on top of oxlint `recommended`; keep the set tight.
 		rules: {

@@ -3,7 +3,11 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"rootDir": ".",
-		"lib": ["ES2022"]
+		"lib": ["ES2022"],
+		"module": "Node16",
+		"moduleResolution": "Node16",
+		"strictNullChecks": true,
+		"types": ["node", "bun"]
 	},
 	"include": ["./", "./**/*.ts", "./**/*.js", "src/**/*.json"],
 	"exclude": [
@@ -13,8 +17,8 @@
 		".cache/",
 		".tmp/",
 		"src/admin/",
-		"**/*.test.*",
 		"src/plugins/**",
-		"types/generated/**"
+		"types/generated/**",
+		"vite.config.ts"
 	]
 }

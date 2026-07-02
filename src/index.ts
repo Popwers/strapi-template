@@ -6,6 +6,19 @@ import type { Core } from '@strapi/strapi';
 
 import sendError from './sentry';
 
+/**
+ * Reads a required environment variable, throwing if it is missing or empty.
+ * Narrows the return type to `string`, since `process.env[name]` is otherwise
+ * `string | undefined`.
+ * @param name - The environment variable to read.
+ * @returns The environment variable's value.
+ */
+function requireEnv(name: string): string {
+	const value = process.env[name];
+	if (!value) throw new Error(`Missing required environment variable: ${name}`);
+	return value;
+}
+
 export default {
 	/**
 	 * An asynchronous register function that runs before
@@ -39,30 +52,23 @@ export default {
 					const DB_BACKUP_FILE = `${EXPORT_FILE_NAME}-db.sql`;
 
 					try {
-						// Validate environment variables
-						const requiredEnvVars = [
-							'S3_ENDPOINT',
-							'S3_ACCESS_KEY_ID',
-							'S3_SECRET_ACCESS_KEY',
-							'S3_BUCKET',
-							'DATABASE_HOST',
-							'DATABASE_PORT',
-							'DATABASE_NAME',
-							'DATABASE_USERNAME',
-							'DATABASE_PASSWORD',
-						];
-
-						for (const envVar of requiredEnvVars) {
-							if (!process.env[envVar])
-								throw new Error(`Missing required environment variable: ${envVar}`);
-						}
+						// Validate environment variables up front, narrowing each to `string`.
+						const S3_ENDPOINT = requireEnv('S3_ENDPOINT');
+						const S3_ACCESS_KEY_ID = requireEnv('S3_ACCESS_KEY_ID');
+						const S3_SECRET_ACCESS_KEY = requireEnv('S3_SECRET_ACCESS_KEY');
+						const S3_BUCKET = requireEnv('S3_BUCKET');
+						const DATABASE_HOST = requireEnv('DATABASE_HOST');
+						const DATABASE_PORT = requireEnv('DATABASE_PORT');
+						const DATABASE_NAME = requireEnv('DATABASE_NAME');
+						const DATABASE_USERNAME = requireEnv('DATABASE_USERNAME');
+						const DATABASE_PASSWORD = requireEnv('DATABASE_PASSWORD');
 
 						const S3_CONFIG = {
 							region: 'auto',
-							endpoint: process.env.S3_ENDPOINT,
+							endpoint: S3_ENDPOINT,
 							credentials: {
-								accessKeyId: process.env.S3_ACCESS_KEY_ID,
-								secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+								accessKeyId: S3_ACCESS_KEY_ID,
+								secretAccessKey: S3_SECRET_ACCESS_KEY,
 							},
 						};
 
@@ -76,20 +82,20 @@ export default {
 						execFileSync(
 							'pg_dump',
 							[
-								`--host=${process.env.DATABASE_HOST}`,
-								`--port=${process.env.DATABASE_PORT}`,
-								`--username=${process.env.DATABASE_USERNAME}`,
+								`--host=${DATABASE_HOST}`,
+								`--port=${DATABASE_PORT}`,
+								`--username=${DATABASE_USERNAME}`,
 								'--no-owner',
 								'--no-privileges',
 								`--file=${DB_BACKUP_FILE}`,
-								process.env.DATABASE_NAME,
+								DATABASE_NAME,
 							],
 							{
 								stdio: 'inherit',
 								timeout: 300000,
 								env: {
 									...process.env,
-									PGPASSWORD: process.env.DATABASE_PASSWORD,
+									PGPASSWORD: DATABASE_PASSWORD,
 								},
 							},
 						);
@@ -112,7 +118,7 @@ export default {
 						await Promise.all([
 							s3Client.send(
 								new PutObjectCommand({
-									Bucket: process.env.S3_BUCKET,
+									Bucket: S3_BUCKET,
 									Key: BACKUP_FILE,
 									Body: strapiBackup,
 									ContentType: 'application/gzip',
@@ -120,7 +126,7 @@ export default {
 							),
 							s3Client.send(
 								new PutObjectCommand({
-									Bucket: process.env.S3_BUCKET,
+									Bucket: S3_BUCKET,
 									Key: DB_BACKUP_FILE,
 									Body: dbBackup,
 									ContentType: 'application/sql',
