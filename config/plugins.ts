@@ -1,3 +1,5 @@
+import { UPLOAD_ALLOWED_TYPES, UPLOAD_SIZE_LIMIT } from './upload-limits';
+
 export default ({ env }) => ({
 	'users-permissions': {
 		config: {
@@ -33,19 +35,12 @@ export default ({ env }) => ({
 	},
 	upload: {
 		config: {
-			sizeLimit: 15 * 1024 * 1024,
+			// Hard cap on upload size — single source in ./upload-limits.
+			sizeLimit: UPLOAD_SIZE_LIMIT,
 			// MIME validated from file content (file-type), not the declared header.
-			// SVG/HTML intentionally excluded (XSS risk), executables too.
+			// SVG/HTML intentionally excluded (XSS risk), executables too. See ./upload-limits.
 			security: {
-				allowedTypes: [
-					'image/jpeg',
-					'image/png',
-					'image/webp',
-					'application/pdf',
-					'application/zip',
-					'text/csv',
-					'text/plain',
-				],
+				allowedTypes: UPLOAD_ALLOWED_TYPES,
 			},
 		},
 	},
