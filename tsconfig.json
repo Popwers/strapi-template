@@ -18,6 +18,7 @@
 		".tmp/",
 		"src/admin/",
 		"src/plugins/**",
+		"tools/",
 		"types/generated/**",
 		"vite.config.ts"
 	]

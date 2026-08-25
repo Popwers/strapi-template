@@ -30,6 +30,7 @@ LICENSE
 .editorconfig
 vite.config.ts
 .vite-hooks
+tools/oxlint
 
 # IDE files
 .vscode
