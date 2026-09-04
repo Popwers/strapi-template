@@ -22,22 +22,91 @@ interface PolicyContext {
 
 type Policy = (ctx: PolicyContext) => boolean;
 
+/** Client register payload. `role` is the privilege-escalation claim we must drop. */
+interface RegisterRequestBody {
+	email: string;
+	password: string;
+	role?: unknown;
+}
+
+interface CreatedUser {
+	id: number;
+}
+
+interface RegisterResponse {
+	jwt: string;
+	user: CreatedUser;
+}
+
+/** The slice of Koa ctx that `auth.register` and the create overrides read. */
+interface RegisterContext {
+	request: { body: RegisterRequestBody };
+	body?: RegisterResponse | { message: string };
+	status?: number;
+	badRequest: (message: string) => void;
+}
+
+type RegisterHandler = (ctx: RegisterContext) => Promise<void>;
+
+interface UserRoleUpdate {
+	where: { id: number };
+	data: { role: number };
+}
+
+/** Strapi 5 register with `allowedFields: []` — only these keys may appear. */
+const REGISTER_ALWAYS_ALLOWED = ['username', 'password', 'email'] as const;
+
+const isRegisterAllowedKey = (key: string): boolean =>
+	(REGISTER_ALWAYS_ALLOWED as readonly string[]).includes(key);
+
+/**
+ * Mirror of Strapi 5.48 `auth.register` allowedFields check
+ * (`packages/plugins/users-permissions/server/src/controllers/auth.js`).
+ * Extra keys become `ValidationError: Invalid parameters: …` (HTTP 400).
+ */
+const strapiRegisterAllowedFieldsEmpty: RegisterHandler = async (ctx) => {
+	const invalidKeys = Object.keys(ctx.request.body).filter((key) => !isRegisterAllowedKey(key));
+	if (invalidKeys.length > 0) {
+		ctx.badRequest(`Invalid parameters: ${invalidKeys.join(', ')}`);
+		return;
+	}
+	ctx.body = { jwt: 'test-jwt', user: { id: 42 } };
+};
+
+const registerCtx = (body: RegisterRequestBody): RegisterContext => {
+	const ctx: RegisterContext = {
+		request: { body },
+		badRequest: (message: string) => {
+			ctx.status = 400;
+			ctx.body = { message };
+		},
+	};
+	return ctx;
+};
+
 /** The slice of the users-permissions plugin object the extension mutates. */
 interface UsersPermissionsPlugin {
 	controllers: {
-		contentmanageruser: { create: () => Promise<void>; update: () => Promise<void> };
-		user: { create: () => Promise<void>; update: () => Promise<void>; me: () => Promise<void> };
-		auth: () => { register: () => Promise<void> };
+		contentmanageruser: {
+			create: (ctx: RegisterContext) => Promise<void>;
+			update: () => Promise<void>;
+		};
+		user: {
+			create: (ctx: RegisterContext) => Promise<void>;
+			update: () => Promise<void>;
+			me: () => Promise<void>;
+		};
+		auth: (opts: { strapi: unknown }) => { register: (ctx: RegisterContext) => Promise<void> };
 	};
 	policies: Record<string, Policy>;
 	routes: { 'content-api': { routes: Route[] } };
 }
 
-const mockPlugin = (): UsersPermissionsPlugin => ({
+const mockPlugin = (register: RegisterHandler = async () => {}): UsersPermissionsPlugin => ({
 	controllers: {
 		contentmanageruser: { create: async () => {}, update: async () => {} },
 		user: { create: async () => {}, update: async () => {}, me: async () => {} },
-		auth: () => ({ register: async () => {} }),
+		auth: () => ({ register }),
 	},
 	policies: {},
 	routes: {
@@ -47,12 +116,21 @@ const mockPlugin = (): UsersPermissionsPlugin => ({
 	},
 });
 
+const AUTHENTICATED_ROLE = { id: 1, type: 'authenticated' };
+const roleUpdates: UserRoleUpdate[] = [];
+
 // strapi-server only reads the `strapi` global once its exported factory is
 // called (inside each test below), never at module-evaluation time, so it's
 // safe to set this mock up after the static import above.
 Object.assign(globalThis, {
 	strapi: {
-		query: () => ({ findOne: async () => ({ id: 1, type: 'authenticated' }) }),
+		query: () => ({
+			findOne: async () => AUTHENTICATED_ROLE,
+			update: async (args: UserRoleUpdate) => {
+				roleUpdates.push(args);
+				return args;
+			},
+		}),
 		plugin: () => ({ service: () => ({}) }),
 	},
 });
@@ -92,5 +170,52 @@ describe('isOwnerOrAdmin policy', () => {
 			(r: Route) => r.method === 'PUT' && r.path === '/users/:id',
 		);
 		expect(route?.config.policies).toEqual(['isOwnerOrAdmin']);
+	});
+});
+
+describe('auth.register', () => {
+	const clientPayload = (): RegisterRequestBody => ({
+		email: 'new@example.com',
+		password: 'secret-pass',
+		role: 99,
+	});
+
+	const invokeRegister = async (register: RegisterHandler = strapiRegisterAllowedFieldsEmpty) => {
+		roleUpdates.length = 0;
+		const plugin = await extension(mockPlugin(register));
+		const auth = plugin.controllers.auth({ strapi: (globalThis as { strapi: unknown }).strapi });
+		const ctx = registerCtx(clientPayload());
+		await auth.register(ctx);
+		return ctx;
+	};
+
+	test('succeeds when allowedFields is empty (no role in the body)', async () => {
+		const ctx = await invokeRegister();
+		expect(ctx.status).not.toBe(400);
+		expect(ctx.body).toEqual({ jwt: 'test-jwt', user: { id: 42 } });
+	});
+
+	test('sanitized register body has no role (client cannot escalate)', async () => {
+		let seen: Record<string, unknown> | undefined;
+		await invokeRegister(async (ctx) => {
+			seen = { ...ctx.request.body };
+			await strapiRegisterAllowedFieldsEmpty(ctx);
+		});
+		expect(seen).toBeDefined();
+		expect(seen).not.toHaveProperty('role');
+		expect(seen?.email).toBe('new@example.com');
+		expect(seen?.password).toBe('secret-pass');
+		expect(seen?.username).toMatch(/^username_[0-9a-f]{12}$/);
+	});
+
+	test('assigns the authenticated role after register', async () => {
+		await invokeRegister();
+		expect(roleUpdates).toEqual([{ where: { id: 42 }, data: { role: AUTHENTICATED_ROLE.id } }]);
+	});
+
+	test('does not persist the client-supplied role id', async () => {
+		await invokeRegister();
+		expect(roleUpdates.length).toBeGreaterThan(0);
+		expect(roleUpdates.some((update) => update.data.role === 99)).toBe(false);
 	});
 });
