@@ -96,7 +96,7 @@ interface UsersPermissionsPlugin {
 			update: () => Promise<void>;
 			me: () => Promise<void>;
 		};
-		auth: (opts: { strapi: unknown }) => { register: (ctx: RegisterContext) => Promise<void> };
+		auth: (opts?: { strapi?: unknown }) => { register: (ctx: RegisterContext) => Promise<void> };
 	};
 	policies: Record<string, Policy>;
 	routes: { 'content-api': { routes: Route[] } };
@@ -183,7 +183,7 @@ describe('auth.register', () => {
 	const invokeRegister = async (register: RegisterHandler = strapiRegisterAllowedFieldsEmpty) => {
 		roleUpdates.length = 0;
 		const plugin = await extension(mockPlugin(register));
-		const auth = plugin.controllers.auth({ strapi: (globalThis as { strapi: unknown }).strapi });
+		const auth = plugin.controllers.auth({});
 		const ctx = registerCtx(clientPayload());
 		await auth.register(ctx);
 		return ctx;
