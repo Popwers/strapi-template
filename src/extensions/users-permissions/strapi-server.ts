@@ -53,22 +53,11 @@ export default async (plugin) => {
 		return {
 			...initialAuthController,
 			register: async (ctx) => {
-				const defaultRole = await findAuthenticatedRole();
-				if (!defaultRole) return ctx.badRequest('Default role not found');
-
-				// Role is assigned after register. Putting it on the body 400s
-				// because `register.allowedFields` is empty (see config/plugins.ts).
+				// Stock register writes settings.default_role in the same user.add
+				// create. A role key on this body is a 400 (allowedFields is empty).
 				ctx.request.body = sanitizeUser(ctx);
 
 				await initialAuthController.register(ctx);
-
-				const userId = ctx.body?.user?.id;
-				if (userId) {
-					await strapi.query('plugin::users-permissions.user').update({
-						where: { id: userId },
-						data: { role: defaultRole.id },
-					});
-				}
 			},
 		};
 	};
@@ -246,8 +235,8 @@ export default async (plugin) => {
 		});
 
 	/**
-	 * Admin / user create still needs a role on the body. Register cannot:
-	 * it assigns the same role after the stock controller returns.
+	 * Admin / user create still needs a role on the body.
+	 * Register leaves that to stock `user.add` (settings.default_role).
 	 * @param ctx
 	 * @returns object | false
 	 */
