@@ -24,11 +24,10 @@ export default async (plugin) => {
 	 * @param ctx
 	 */
 	plugin.controllers.contentmanageruser.create = async (ctx) => {
-		const sanitizedUser = await sanitizeUser(ctx);
-		if (!sanitizedUser) return ctx.badRequest('Default role not found');
+		const createBody = await createUserWriteBody(ctx);
+		if (!createBody) return ctx.badRequest('Default role not found');
 
-		// Set the sanitized data to the request body
-		ctx.request.body = sanitizedUser;
+		ctx.request.body = createBody;
 
 		await contentManagerUserCreateController(ctx);
 	};
@@ -38,11 +37,10 @@ export default async (plugin) => {
 	 * @param ctx
 	 */
 	plugin.controllers.user.create = async (ctx) => {
-		const sanitizedUser = await sanitizeUser(ctx);
-		if (!sanitizedUser) return ctx.badRequest('Default role not found');
+		const createBody = await createUserWriteBody(ctx);
+		if (!createBody) return ctx.badRequest('Default role not found');
 
-		// Set the sanitized data to the request body
-		ctx.request.body = sanitizedUser;
+		ctx.request.body = createBody;
 
 		await createUserController(ctx);
 	};
@@ -55,11 +53,9 @@ export default async (plugin) => {
 		return {
 			...initialAuthController,
 			register: async (ctx) => {
-				const sanitizedUser = await sanitizeUser(ctx);
-				if (!sanitizedUser) return ctx.badRequest('Default role not found');
-
-				// Set the sanitized data to the request body
-				ctx.request.body = sanitizedUser;
+				// Stock register writes settings.default_role in the same user.add
+				// create. A role key on this body is a 400 (allowedFields is empty).
+				ctx.request.body = newUserWriteBody(ctx);
 
 				await initialAuthController.register(ctx);
 			},
@@ -221,29 +217,24 @@ export default async (plugin) => {
 	 * --------------------------------------------------------------------
 	 */
 
-	/**
-	 * Rebuild the registration body from scratch so client-supplied values never
-	 * reach the DB. This is the counterpart of `register.allowedFields: ['role']`
-	 * in config/plugins.ts: the field is whitelisted there only because we force
-	 * the role to the default here. Removing this helper re-opens role self-assignment.
-	 * @param ctx
-	 * @returns object | false
-	 */
-	const sanitizeUser = async (ctx) => {
-		// Generate placeholder username and get the default role
-		const username = generateUser();
-		const defaultRole = await strapi.query('plugin::users-permissions.role').findOne({
+	const newUserWriteBody = (ctx) => ({
+		email: ctx.request.body.email,
+		password: ctx.request.body.password,
+		username: generateUser(),
+	});
+
+	const findAuthenticatedRole = async () =>
+		strapi.query('plugin::users-permissions.role').findOne({
 			where: { type: 'authenticated' },
 		});
 
+	const createUserWriteBody = async (ctx) => {
+		const defaultRole = await findAuthenticatedRole();
 		if (!defaultRole) return false;
 
-		// Reset the body to avoid errors or hacks
 		return {
-			email: ctx.request.body.email,
-			password: ctx.request.body.password,
+			...newUserWriteBody(ctx),
 			role: { disconnect: [], connect: [defaultRole] },
-			username,
 		};
 	};
 

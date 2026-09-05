@@ -7,11 +7,8 @@ export default ({ env }) => ({
 				expiresIn: '7d',
 			},
 			register: {
-				// SECURITY: 'role' is only safe here because src/extensions/users-permissions/
-				// strapi-server.ts overrides auth.register and force-rebuilds the body via
-				// sanitizeUser (client role values never reach the DB). If that extension is
-				// removed, this line MUST be removed too — otherwise clients can self-assign roles.
-				allowedFields: ['role'],
+				// Do not allow `role` — clients must never self-assign roles at registration.
+				allowedFields: [],
 			},
 		},
 	},
