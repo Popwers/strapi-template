@@ -24,10 +24,10 @@ export default async (plugin) => {
 	 * @param ctx
 	 */
 	plugin.controllers.contentmanageruser.create = async (ctx) => {
-		const sanitizedUser = await bodyWithAuthenticatedRole(ctx);
-		if (!sanitizedUser) return ctx.badRequest('Default role not found');
+		const createBody = await createUserWriteBody(ctx);
+		if (!createBody) return ctx.badRequest('Default role not found');
 
-		ctx.request.body = sanitizedUser;
+		ctx.request.body = createBody;
 
 		await contentManagerUserCreateController(ctx);
 	};
@@ -37,10 +37,10 @@ export default async (plugin) => {
 	 * @param ctx
 	 */
 	plugin.controllers.user.create = async (ctx) => {
-		const sanitizedUser = await bodyWithAuthenticatedRole(ctx);
-		if (!sanitizedUser) return ctx.badRequest('Default role not found');
+		const createBody = await createUserWriteBody(ctx);
+		if (!createBody) return ctx.badRequest('Default role not found');
 
-		ctx.request.body = sanitizedUser;
+		ctx.request.body = createBody;
 
 		await createUserController(ctx);
 	};
@@ -55,7 +55,7 @@ export default async (plugin) => {
 			register: async (ctx) => {
 				// Stock register writes settings.default_role in the same user.add
 				// create. A role key on this body is a 400 (allowedFields is empty).
-				ctx.request.body = sanitizeUser(ctx);
+				ctx.request.body = newUserWriteBody(ctx);
 
 				await initialAuthController.register(ctx);
 			},
@@ -217,13 +217,7 @@ export default async (plugin) => {
 	 * --------------------------------------------------------------------
 	 */
 
-	/**
-	 * Rebuild the write body from client email/password plus a generated
-	 * username. Never copy `role` (or any other client field). Register
-	 * `allowedFields` is empty, so a `role` key here is a 400.
-	 * @param ctx
-	 */
-	const sanitizeUser = (ctx) => ({
+	const newUserWriteBody = (ctx) => ({
 		email: ctx.request.body.email,
 		password: ctx.request.body.password,
 		username: generateUser(),
@@ -234,18 +228,12 @@ export default async (plugin) => {
 			where: { type: 'authenticated' },
 		});
 
-	/**
-	 * Admin / user create still needs a role on the body.
-	 * Register leaves that to stock `user.add` (settings.default_role).
-	 * @param ctx
-	 * @returns object | false
-	 */
-	const bodyWithAuthenticatedRole = async (ctx) => {
+	const createUserWriteBody = async (ctx) => {
 		const defaultRole = await findAuthenticatedRole();
 		if (!defaultRole) return false;
 
 		return {
-			...sanitizeUser(ctx),
+			...newUserWriteBody(ctx),
 			role: { disconnect: [], connect: [defaultRole] },
 		};
 	};

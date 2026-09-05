@@ -22,7 +22,6 @@ interface PolicyContext {
 
 type Policy = (ctx: PolicyContext) => boolean;
 
-/** Client register payload. `role` is the privilege-escalation claim we must drop. */
 interface RegisterRequestBody {
 	email: string;
 	password: string;
@@ -38,7 +37,6 @@ interface RegisterResponse {
 	user: CreatedUser;
 }
 
-/** The slice of Koa ctx that `auth.register` and the create overrides read. */
 interface RegisterContext {
 	request: { body: RegisterRequestBody };
 	body?: RegisterResponse | { message: string };
