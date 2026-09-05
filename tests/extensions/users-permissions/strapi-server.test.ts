@@ -208,14 +208,13 @@ describe('auth.register', () => {
 		expect(seen?.username).toMatch(/^username_[0-9a-f]{12}$/);
 	});
 
-	test('assigns the authenticated role after register', async () => {
+	test('does not follow register with a second role write', async () => {
 		await invokeRegister();
-		expect(roleUpdates).toEqual([{ where: { id: 42 }, data: { role: AUTHENTICATED_ROLE.id } }]);
+		expect(roleUpdates).toEqual([]);
 	});
 
 	test('does not persist the client-supplied role id', async () => {
 		await invokeRegister();
-		expect(roleUpdates.length).toBeGreaterThan(0);
 		expect(roleUpdates.some((update) => update.data.role === 99)).toBe(false);
 	});
 });
