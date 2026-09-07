@@ -35,7 +35,7 @@
     "@types/react-dom": "^18",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
-    "vite-plus": "^0.1.24"
+    "vite-plus": "^0.3.0"
   },
   "author": {
     "name": "Lionel Bataille"
