@@ -1,3 +1,4 @@
+import { LOCAL_UPLOAD_STATIC_OPTIONS } from './asset-cache';
 import { UPLOAD_ALLOWED_TYPES, UPLOAD_SIZE_LIMIT } from './upload-limits';
 
 export default ({ env }) => ({
@@ -38,6 +39,9 @@ export default ({ env }) => ({
 			// SVG/HTML intentionally excluded (XSS risk), executables too. See ./upload-limits.
 			security: {
 				allowedTypes: UPLOAD_ALLOWED_TYPES,
+			},
+			providerOptions: {
+				localServer: LOCAL_UPLOAD_STATIC_OPTIONS,
 			},
 		},
 	},

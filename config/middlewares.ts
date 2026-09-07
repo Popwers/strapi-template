@@ -1,4 +1,6 @@
-export default [
+type MiddlewareEntry = string | { resolve: string };
+
+const middlewares: MiddlewareEntry[] = [
 	{ resolve: 'src/middlewares/admin-redirect' },
 	'strapi::logger',
 	'strapi::errors',
@@ -8,7 +10,10 @@ export default [
 	'strapi::query',
 	'strapi::body',
 	'strapi::session',
+	// Outer so it compresses favicon and public bodies on the way out.
+	'strapi::compression',
 	'strapi::favicon',
 	'strapi::public',
-	'strapi::compression',
 ];
+
+export default middlewares;
