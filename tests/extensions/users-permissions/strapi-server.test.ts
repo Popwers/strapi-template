@@ -25,6 +25,7 @@ type Policy = (ctx: PolicyContext) => boolean;
 interface RegisterRequestBody {
 	email: string;
 	password: string;
+	username?: string;
 	role?: unknown;
 }
 
@@ -55,7 +56,7 @@ interface UserRoleUpdate {
 const REGISTER_ALWAYS_ALLOWED = ['username', 'password', 'email'] as const;
 
 const isRegisterAllowedKey = (key: string): boolean =>
-	(REGISTER_ALWAYS_ALLOWED as readonly string[]).includes(key);
+	REGISTER_ALWAYS_ALLOWED.some((allowed) => allowed === key);
 
 /**
  * Mirror of Strapi 5.48 `auth.register` allowedFields check
@@ -194,7 +195,7 @@ describe('auth.register', () => {
 	});
 
 	test('sanitized register body has no role (client cannot escalate)', async () => {
-		let seen: Record<string, unknown> | undefined;
+		let seen: RegisterRequestBody | undefined;
 		await invokeRegister(async (ctx) => {
 			seen = { ...ctx.request.body };
 			await strapiRegisterAllowedFieldsEmpty(ctx);
