@@ -63,5 +63,19 @@
       ]
     ]
   },
-  "packageManager": "npm@11.17.0"
+  "packageManager": "npm@11.17.0",
+  "overrides": {
+    "vite-plus": {
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1",
+      "vitest": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1"
+      },
+      "@vitest/mocker": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1"
+      },
+      "@vitest/browser": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.3.1"
+      }
+    }
+  }
 }
