@@ -7,6 +7,9 @@ import { defineConfig } from 'vite-plus';
  *         bracket on same line, arrow parens always, deterministic import
  *         order, Tailwind sorted, package.json sorted.
  * lint:   curated oxlint rule set on top of `recommended`.
+ *         anti-slop: https://github.com/dmmulroy/anti-slop
+ *         (vendored at tools/oxlint/anti-slop/). This template has no
+ *         Tailwind, so @shadcn/lint is not registered.
  * staged: run `vp check --fix` on staged files (install via `vp config`).
  */
 export default defineConfig({
@@ -87,6 +90,7 @@ export default defineConfig({
 			'.cursor/**',
 			'.gemini/**',
 			'.grepai/**',
+			'.grok/**',
 			'.opencode/**',
 			'.pi/**',
 			'.roo/**',
@@ -112,6 +116,7 @@ export default defineConfig({
 			'.cursor/**',
 			'.gemini/**',
 			'.grepai/**',
+			'.grok/**',
 			'.opencode/**',
 			'.pi/**',
 			'.roo/**',
@@ -119,7 +124,7 @@ export default defineConfig({
 			'.windsurf/**',
 			'tools/oxlint/anti-slop/**',
 		],
-		// Vendored anti-slop plugin (tools/oxlint/anti-slop) — rejects low-evidence TS patterns.
+		// Vendored from https://github.com/dmmulroy/anti-slop (tools/oxlint/anti-slop).
 		jsPlugins: [{ name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' }],
 		options: {
 			typeAware: true,
