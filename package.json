@@ -8,7 +8,7 @@
     "start": "strapi start",
     "build": "strapi build",
     "strapi": "strapi",
-    "test": "bun test",
+    "test": "vp test",
     "gen:types": "strapi ts:generate-types --debug",
     "upgrade": "npx @strapi/upgrade latest"
   },
