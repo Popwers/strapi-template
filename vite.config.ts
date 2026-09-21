@@ -169,5 +169,7 @@ export default defineConfig({
 		alias: {
 			'bun:test': 'vitest',
 		},
+		include: ['tests/**/*.test.ts'],
+		exclude: ['dist/**', 'node_modules/**'],
 	},
 });
