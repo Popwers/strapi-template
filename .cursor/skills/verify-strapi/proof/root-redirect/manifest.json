@@ -1,0 +1,61 @@
+{
+  "feature": "root-redirect",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi doctor",
+    "verify-strapi http GET / --no-follow",
+    "verify-strapi http GET /index.html --no-follow",
+    "verify-strapi http GET /",
+    "verify-strapi http GET /admin",
+    "verify-strapi http GET /_health --no-follow",
+    "verify-strapi screenshot --path proof/root-redirect/admin.png --url /admin"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "GET / is 302",
+      "detail": "302"
+    },
+    {
+      "ok": true,
+      "label": "GET / Location /admin",
+      "detail": "/admin"
+    },
+    {
+      "ok": true,
+      "label": "GET /index.html is 302",
+      "detail": "302"
+    },
+    {
+      "ok": true,
+      "label": "GET /index.html Location /admin",
+      "detail": "/admin"
+    },
+    {
+      "ok": true,
+      "label": "GET /_health is 204",
+      "detail": "204"
+    },
+    {
+      "ok": true,
+      "label": "GET /_health is not redirected to /admin",
+      "detail": ""
+    },
+    {
+      "ok": true,
+      "label": "GET /admin is 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "GET /admin contains Strapi",
+      "detail": "Strapi"
+    },
+    {
+      "ok": true,
+      "label": "admin.png captured",
+      "detail": "True"
+    }
+  ],
+  "ok": true
+}

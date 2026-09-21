@@ -1,0 +1,762 @@
+#!/usr/bin/env bash
+# Agent harness for strapi-template. Invoke from the repo root.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+SKILL_DIR="$ROOT/.cursor/skills/verify-strapi"
+TMP_DIR="${VERIFY_STRAPI_TMP:-/tmp/verify-strapi}"
+STATE_FILE="$TMP_DIR/state"
+ENV_FILE="$TMP_DIR/run.env"
+LOG_FILE="$TMP_DIR/strapi.log"
+PG_LOG="$TMP_DIR/postgres.log"
+PG_DIR="$TMP_DIR/pg"
+PGDATA="$TMP_DIR/pgdata"
+PROOF_DIR="${VERIFY_EVIDENCE_DIR:-$SKILL_DIR/proof}"
+DEFAULT_PORT="${VERIFY_STRAPI_PORT:-1341}"
+DEFAULT_PGPORT="${VERIFY_PGPORT:-5441}"
+PG_USER="strapi_verify"
+PG_DB="strapi_verify"
+PG_PASSWORD="strapi_verify"
+
+ensure_path() {
+	local d vpnode
+	export PATH="${HOME}/.local/bin:${HOME}/.grok/bin:${HOME}/.bun/bin:/usr/local/bin:${PATH}"
+	for d in "${HOME}/.local/opt/postgresql-"*/bin /usr/lib/postgresql/*/bin /usr/lib/postgresql/18/bin; do
+		if [ -x "${d}/initdb" ] && [ -x "${d}/postgres" ]; then
+			export PATH="${d}:${PATH}"
+			break
+		fi
+	done
+	vpnode="$(ls -d "${HOME}/.local/share/vite-plus/js_runtime/node/"*/bin 2>/dev/null | tail -n1 || true)"
+	if [ -n "$vpnode" ]; then
+		export PATH="${vpnode}:${PATH}"
+	fi
+}
+
+ensure_path
+
+usage() {
+	cat <<'EOF'
+verify-strapi <command>
+
+Commands:
+  launch [--port N] [--pg-port N] [--json]   Start isolated Postgres + strapi develop
+  doctor [--json]                            Read-only health check (exit 0 = driveable)
+  http GET PATH [--no-follow]                Request against the owned origin
+  http POST PATH --json '{...}'              JSON POST against the owned origin
+  screenshot --path FILE [--url /p]          Headless Chrome PNG
+  drive root-redirect                        Scripted root-redirect recipe + proof/
+  cleanup                                    Stop what launch started (keep proof/)
+  self-check                                 CLI smoke without starting the app
+  help                                       Show this text
+
+Env:
+  VERIFY_STRAPI_PORT        default 1341
+  VERIFY_PGPORT             default 5441
+  VERIFY_STRAPI_TMP         default /tmp/verify-strapi
+  VERIFY_EVIDENCE_DIR       default <skill>/proof
+EOF
+}
+
+die() {
+	echo "verify-strapi: $*" >&2
+	exit 1
+}
+
+pid_alive() {
+	kill -0 "$1" 2>/dev/null
+}
+
+list_descendants() {
+	local children child
+	children="$(pgrep -P "$1" 2>/dev/null || true)"
+	for child in $children; do
+		list_descendants "$child"
+		printf '%s ' "$child"
+	done
+}
+
+stop_pid_tree() {
+	local root="$1"
+	local descendants
+	[ -n "$root" ] || return 0
+	pid_alive "$root" || return 0
+	descendants="$(list_descendants "$root")"
+	# Intentional word-split of the descendant pid list.
+	# shellcheck disable=SC2086
+	kill -TERM $descendants "$root" 2>/dev/null || true
+	local deadline=$((SECONDS + 10))
+	while [ "$SECONDS" -lt "$deadline" ] && pid_alive "$root"; do
+		sleep 0.2
+	done
+	if pid_alive "$root"; then
+		# shellcheck disable=SC2086
+		kill -KILL $descendants "$root" 2>/dev/null || true
+	fi
+}
+
+port_in_use() {
+	local port="$1"
+	python3 - "$port" <<'PY'
+import socket, sys
+port = int(sys.argv[1])
+s = socket.socket()
+s.settimeout(0.3)
+try:
+    s.connect(("127.0.0.1", port))
+except OSError:
+    sys.exit(1)
+else:
+    s.close()
+    sys.exit(0)
+PY
+}
+
+pick_port() {
+	local start="$1" port
+	port="$start"
+	while [ "$port" -le $((start + 20)) ]; do
+		if ! port_in_use "$port"; then
+			printf '%s\n' "$port"
+			return 0
+		fi
+		port=$((port + 1))
+	done
+	die "no free port in ${start}-$((start + 20))"
+}
+
+load_state() {
+	[ -f "$STATE_FILE" ] || die "no state file at $STATE_FILE (run launch first)"
+	# shellcheck disable=SC1090
+	. "$STATE_FILE"
+	[ -n "${PORT:-}" ] || die "state is missing PORT"
+	[ -n "${PID:-}" ] || die "state is missing PID"
+}
+
+origin() {
+	printf 'http://127.0.0.1:%s' "${PORT:?}"
+}
+
+write_state() {
+	mkdir -p "$TMP_DIR"
+	cat >"$STATE_FILE" <<EOF
+PID=$1
+PORT=$2
+PG_PID=${3:-}
+PGPORT=${4:-}
+STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+REPO=$ROOT
+LOG=$LOG_FILE
+PG_LOG=$PG_LOG
+ORIGIN=http://127.0.0.1:$2
+OWNED=1
+PG_USER=$PG_USER
+PG_DB=$PG_DB
+EOF
+}
+
+secret() {
+	openssl rand -base64 16 | tr -d '\n'
+}
+
+app_keys() {
+	printf '%s,%s,%s,%s' "$(secret)" "$(secret)" "$(secret)" "$(secret)"
+}
+
+ensure_deps() {
+	if [ ! -d "$ROOT/node_modules/@strapi/strapi" ]; then
+		command -v npm >/dev/null 2>&1 || die "missing npm"
+		(cd "$ROOT" && npm ci --prefer-offline --no-audit)
+	fi
+	[ -x "$ROOT/node_modules/.bin/strapi" ] || die "strapi binary missing after install"
+	ensure_bun_types
+}
+
+ensure_bun_types() {
+	# package.json lists @types/bun but this lockfile does not install it.
+	# `strapi develop` typechecks tests/ (`import from 'bun:test'`). Copy skill-local
+	# stubs into node_modules/@types/bun. Marked and removed in cleanup.
+	local src dst marker
+	src="$SKILL_DIR/scaffolding/types-bun"
+	dst="$ROOT/node_modules/@types/bun"
+	marker="$dst/.verify-strapi-scaffold"
+	[ -f "$src/index.d.ts" ] || die "missing $src/index.d.ts"
+	if [ -d "$dst" ] && [ ! -f "$marker" ]; then
+		return 0
+	fi
+	echo "launch: installing verify-strapi @types/bun stub into node_modules (removed on cleanup)"
+	mkdir -p "$dst"
+	cp "$src/index.d.ts" "$src/package.json" "$dst/"
+	: >"$marker"
+}
+
+start_postgres() {
+	local port="$1"
+	command -v initdb >/dev/null 2>&1 || die "initdb missing (install postgres 18 binaries)"
+	command -v postgres >/dev/null 2>&1 || die "postgres missing"
+	mkdir -p "$PG_DIR"
+	if [ ! -f "$PGDATA/PG_VERSION" ]; then
+		initdb -D "$PGDATA" --auth-local=trust --auth-host=trust \
+			--username="$PG_USER" --encoding=UTF8 --no-locale >/dev/null
+	fi
+	: >"$PG_LOG"
+	(
+		exec postgres -D "$PGDATA" -p "$port" -k "$PG_DIR" -c listen_addresses=127.0.0.1
+	) >>"$PG_LOG" 2>&1 &
+	local pg_pid=$!
+	local i
+	for i in $(seq 1 40); do
+		if pg_isready -q -h 127.0.0.1 -p "$port" -U "$PG_USER" -d template1; then
+			break
+		fi
+		sleep 0.25
+	done
+	pg_isready -q -h 127.0.0.1 -p "$port" -U "$PG_USER" -d template1 || {
+		tail -20 "$PG_LOG" >&2 || true
+		die "native postgres did not become ready on :$port"
+	}
+	# Probe template1 (always present). initdb's user-named DB is not guaranteed on every PG18 layout.
+	if ! psql -h 127.0.0.1 -p "$port" -U "$PG_USER" -d "$PG_DB" -tAc 'SELECT 1' >/dev/null 2>&1; then
+		psql -h 127.0.0.1 -p "$port" -U "$PG_USER" -d template1 -v ON_ERROR_STOP=1 \
+			-c "CREATE DATABASE ${PG_DB};" >/dev/null
+	fi
+	psql -h 127.0.0.1 -p "$port" -U "$PG_USER" -d "$PG_DB" -v ON_ERROR_STOP=1 \
+		-c "ALTER USER ${PG_USER} WITH PASSWORD '${PG_PASSWORD}';" >/dev/null || true
+	printf '%s\n' "$pg_pid"
+}
+
+write_run_env() {
+	local port="$1" pgport="$2"
+	mkdir -p "$TMP_DIR"
+	# Quote every value: cron expressions and comma-separated APP_KEYS break `set -a; . run.env` otherwise.
+	cat >"$ENV_FILE" <<EOF
+HOST='127.0.0.1'
+PORT='$port'
+PUBLIC_URL='http://127.0.0.1:$port'
+NODE_ENV='development'
+APP_KEYS='$(app_keys)'
+API_TOKEN_SALT='$(secret)'
+JWT_SECRET='$(secret)'
+ADMIN_JWT_SECRET='$(secret)'
+TRANSFER_TOKEN_SALT='$(secret)'
+DATABASE_CLIENT='postgres'
+DATABASE_HOST='127.0.0.1'
+DATABASE_PORT='$pgport'
+DATABASE_NAME='$PG_DB'
+DATABASE_USERNAME='$PG_USER'
+DATABASE_PASSWORD='$PG_PASSWORD'
+DATABASE_SCHEMA='public'
+DATABASE_SSL='false'
+STRAPI_PLUGIN_I18N_INIT_LOCALE_CODE='fr'
+SMTP_HOST='127.0.0.1'
+SMTP_PORT='1'
+SMTP_SECURE='false'
+SMTP_USERNAME='verify'
+SMTP_PASSWORD='verify'
+S3_ACCESS_KEY_ID='verify'
+S3_SECRET_ACCESS_KEY='verify'
+S3_ENDPOINT='http://127.0.0.1:1'
+S3_BUCKET='verify'
+CRON_SCHEDULE='0 0 1 1 *'
+STRAPI_TELEMETRY_DISABLED='true'
+EOF
+}
+
+wait_ready() {
+	local port="$1" launch_pid="${2:-}"
+	local deadline=$((SECONDS + 300)) status
+	while [ "$SECONDS" -lt "$deadline" ]; do
+		if [ -n "$launch_pid" ] && ! pid_alive "$launch_pid"; then
+			tail -40 "$LOG_FILE" >&2 || true
+			die "strapi process $launch_pid exited before ready (see $LOG_FILE)"
+		fi
+		status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 "http://127.0.0.1:${port}/_health" 2>/dev/null || true)"
+		if [ "$status" = "204" ]; then
+			return 0
+		fi
+		sleep 1
+	done
+	tail -40 "$LOG_FILE" >&2 || true
+	die "app did not become ready on :$port (see $LOG_FILE)"
+}
+
+cmd_launch() {
+	local want_json=0 requested="" requested_pg="" port pgport pg_pid
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--json) want_json=1; shift ;;
+		--port)
+			[ $# -ge 2 ] || die "--port needs a value"
+			requested="$2"
+			shift 2
+			;;
+		--pg-port)
+			[ $# -ge 2 ] || die "--pg-port needs a value"
+			requested_pg="$2"
+			shift 2
+			;;
+		*) die "unknown launch flag: $1" ;;
+		esac
+	done
+
+	if [ -f "$STATE_FILE" ]; then
+		# shellcheck disable=SC1090
+		. "$STATE_FILE"
+		if [ -n "${PID:-}" ] && pid_alive "$PID" && [ -n "${PORT:-}" ] && port_in_use "$PORT"; then
+			if [ -n "$requested" ] && [ "$requested" != "$PORT" ]; then
+				die "already launched pid=$PID port=$PORT; cleanup first or omit --port"
+			fi
+			if [ "$want_json" -eq 1 ]; then
+				python3 -c 'import json,os; print(json.dumps({"pid":os.environ["PID"],"port":int(os.environ["PORT"]),"origin":os.environ["ORIGIN"],"owned":True}))'
+			fi
+			printf 'already launched pid=%s port=%s origin=%s\n' "$PID" "$PORT" "$(origin)"
+			cmd_doctor >/dev/null
+			return 0
+		fi
+		if [ -n "${PID:-}" ] && pid_alive "$PID"; then
+			die "another verify-strapi instance is running (pid=$PID port=${PORT:-unknown}). cleanup first"
+		fi
+	fi
+
+	if [ -n "$requested" ]; then
+		port_in_use "$requested" && die "port $requested is already in use and is not this run"
+		port="$requested"
+	else
+		port="$(pick_port "$DEFAULT_PORT")"
+	fi
+	if [ -n "$requested_pg" ]; then
+		port_in_use "$requested_pg" && die "postgres port $requested_pg is already in use and is not this run"
+		pgport="$requested_pg"
+	else
+		pgport="$(pick_port "$DEFAULT_PGPORT")"
+	fi
+
+	command -v openssl >/dev/null 2>&1 || die "missing openssl"
+	ensure_deps
+	mkdir -p "$TMP_DIR" "$PROOF_DIR"
+	: >"$LOG_FILE"
+
+	pg_pid="$(start_postgres "$pgport")"
+	write_run_env "$port" "$pgport"
+	write_state "" "$port" "$pg_pid" "$pgport"
+
+	(
+		cd "$ROOT"
+		unset PORT DATABASE_CLIENT DATABASE_HOST DATABASE_PORT DATABASE_NAME
+		unset DATABASE_USERNAME DATABASE_PASSWORD DATABASE_SCHEMA DATABASE_SSL PUBLIC_URL HOST
+		set -a
+		# shellcheck disable=SC1090
+		. "$ENV_FILE"
+		set +a
+		# Node 20 (this box default) has no `node --run`. npm run / vp run invoke the same `dev` script.
+		if command -v vp >/dev/null 2>&1; then
+			exec vp run dev
+		fi
+		exec npm run dev
+	) >>"$LOG_FILE" 2>&1 </dev/null &
+	local pid=$!
+	write_state "$pid" "$port" "$pg_pid" "$pgport"
+	wait_ready "$port" "$pid"
+	if [ "$want_json" -eq 1 ]; then
+		python3 - "$pid" "$port" "$pg_pid" "$pgport" <<'PY'
+import json, sys
+pid, port, pg_pid, pgport = sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4])
+print(json.dumps({
+    "pid": pid,
+    "port": port,
+    "pgPid": pg_pid,
+    "pgPort": pgport,
+    "origin": f"http://127.0.0.1:{port}",
+    "owned": True,
+}))
+PY
+	fi
+	printf 'launched pid=%s port=%s pg_pid=%s pgport=%s origin=%s\n' \
+		"$pid" "$port" "$pg_pid" "$pgport" "http://127.0.0.1:${port}"
+}
+
+cmd_doctor() {
+	local want_json=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--json) want_json=1; shift ;;
+		*) die "unknown doctor flag: $1" ;;
+		esac
+	done
+	load_state
+	pid_alive "$PID" || die "recorded pid $PID is dead"
+	port_in_use "$PORT" || die "port $PORT is not listening"
+	[ -n "${PG_PID:-}" ] || die "state is missing PG_PID"
+	pid_alive "$PG_PID" || die "recorded postgres pid $PG_PID is dead"
+	pg_isready -q -h 127.0.0.1 -p "${PGPORT:?}" -U "$PG_USER" -d template1 || die "postgres not ready on :$PGPORT"
+	psql -h 127.0.0.1 -p "$PGPORT" -U "$PG_USER" -d "$PG_DB" -tAc 'SELECT 1' >/dev/null \
+		|| die "postgres user/db ${PG_USER}/${PG_DB} not reachable on :$PGPORT"
+
+	local health_status root_status admin_status location admin_body
+	health_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 "$(origin)/_health" || true)"
+	[ "$health_status" = "204" ] || die "GET /_health returned $health_status (want 204)"
+
+	admin_body="$(mktemp)"
+	local root_headers
+	root_headers="$(mktemp)"
+	set +e
+	curl -sS -o /dev/null -D "$root_headers" --max-redirs 0 --max-time 10 "$(origin)/" >/dev/null 2>/dev/null
+	set -e
+	root_status="$(awk 'BEGIN{IGNORECASE=1} /^HTTP/{code=$2} END{ print code }' "$root_headers" | tr -d '\r')"
+	location="$(awk 'BEGIN{IGNORECASE=1} /^Location:/{ sub("\r",""); print $2; exit }' "$root_headers")"
+	rm -f "$root_headers"
+	[ "$root_status" = "302" ] || die "GET / returned $root_status (want 302)"
+	case "$location" in
+	/admin|*/admin) ;;
+	*) die "GET / Location was '$location' (want /admin)" ;;
+	esac
+
+	admin_status="$(curl -sS -o "$admin_body" -w '%{http_code}' --max-time 15 "$(origin)/admin" || true)"
+	[ "$admin_status" = "200" ] || {
+		rm -f "$admin_body"
+		die "GET /admin returned $admin_status"
+	}
+	grep -q -i 'Strapi' "$admin_body" || {
+		rm -f "$admin_body"
+		die "GET /admin missing Strapi marker"
+	}
+	rm -f "$admin_body"
+
+	if [ "$want_json" -eq 1 ]; then
+		python3 - "$PID" "$PORT" "$PG_PID" "$PGPORT" "$health_status" "$root_status" "$admin_status" "$location" <<'PY'
+import json, sys
+print(json.dumps({
+    "pid": sys.argv[1],
+    "port": int(sys.argv[2]),
+    "pgPid": sys.argv[3],
+    "pgPort": int(sys.argv[4]),
+    "origin": f"http://127.0.0.1:{sys.argv[2]}",
+    "owned": True,
+    "health": sys.argv[5],
+    "root": sys.argv[6],
+    "admin": sys.argv[7],
+    "location": sys.argv[8],
+}))
+PY
+		return 0
+	fi
+	cat <<EOF
+pid=$PID
+port=$PORT
+pg_pid=$PG_PID
+pgport=$PGPORT
+origin=$(origin)
+owned=true
+health=$health_status
+root=$root_status
+location=$location
+admin=$admin_status
+markers=Strapi
+EOF
+}
+
+http_request() {
+	local method="$1" path="$2" follow="$3" json_body="${4:-}"
+	local out_body="${5:-}" out_headers="${6:-}"
+	load_state
+	case "$path" in
+	/*) ;;
+	*) die "path must start with /" ;;
+	esac
+
+	local target dump bodyfile headerfile
+	target="$(origin)$path"
+	dump="$(mktemp)"
+	bodyfile="$(mktemp)"
+	headerfile="$(mktemp)"
+	local curl_args=(-sS -D "$headerfile" -o "$bodyfile" --max-time 20 -X "$method")
+	if [ "$follow" = "0" ]; then
+		curl_args+=(--max-redirs 0)
+	else
+		curl_args+=(-L)
+	fi
+	if [ -n "$json_body" ]; then
+		curl_args+=(-H 'Content-Type: application/json' --data "$json_body")
+	fi
+
+	set +e
+	curl "${curl_args[@]}" -w '%{http_code} %{url_effective}' "$target" >"$dump" 2>"$TMP_DIR/curl.err"
+	local curl_rc=$?
+	set -e
+	if [ "$follow" = "0" ] && [ "$curl_rc" -eq 47 ]; then
+		curl_rc=0
+	fi
+	[ "$curl_rc" -eq 0 ] || die "curl failed for $method $target ($(cat "$TMP_DIR/curl.err"))"
+
+	local status final location
+	status="$(awk '{ print $1 }' "$dump")"
+	final="$(awk '{ print $2 }' "$dump")"
+	location="$(awk 'BEGIN{IGNORECASE=1} /^Location:/{ sub("\r",""); print $2; exit }' "$headerfile")"
+
+	if [ -n "$out_body" ]; then
+		mkdir -p "$(dirname "$out_body")"
+		cp "$bodyfile" "$out_body"
+	fi
+	if [ -n "$out_headers" ]; then
+		mkdir -p "$(dirname "$out_headers")"
+		cp "$headerfile" "$out_headers"
+	fi
+
+	printf 'status=%s\n' "$status"
+	printf 'request=%s %s\n' "$method" "$target"
+	printf 'final=%s\n' "$final"
+	if [ -n "$location" ]; then
+		printf 'location=%s\n' "$location"
+	fi
+	printf 'markers='
+	local hits="" needle
+	for needle in Strapi hasAdmin username_ Invalid 'Welcome to Strapi' 'Create your account' 'Log in'; do
+		if grep -q -F "$needle" "$bodyfile" 2>/dev/null; then
+			if [ -n "$hits" ]; then
+				hits="$hits,"
+			fi
+			hits="$hits$needle"
+		fi
+	done
+	printf '%s\n' "$hits"
+	rm -f "$dump" "$bodyfile" "$headerfile"
+}
+
+cmd_http() {
+	local method="${1:-}" path="${2:-}" follow=1 json_body=""
+	shift $(( $# >= 1 ? 1 : 0 )) || true
+	shift $(( $# >= 1 ? 1 : 0 )) || true
+	[ -n "$method" ] || die "http needs METHOD PATH"
+	[ -n "$path" ] || die "http needs METHOD PATH"
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--no-follow) follow=0; shift ;;
+		--json)
+			[ $# -ge 2 ] || die "--json needs a value"
+			json_body="$2"
+			shift 2
+			;;
+		*) die "unknown http flag: $1" ;;
+		esac
+	done
+	http_request "$method" "$path" "$follow" "$json_body"
+}
+
+chrome_bin() {
+	if [ -x /usr/bin/google-chrome ]; then
+		printf '%s\n' /usr/bin/google-chrome
+		return 0
+	fi
+	command -v google-chrome 2>/dev/null || return 1
+}
+
+cmd_screenshot() {
+	local path="" url="/"
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		--path)
+			[ $# -ge 2 ] || die "--path needs a value"
+			path="$2"
+			shift 2
+			;;
+		--url)
+			[ $# -ge 2 ] || die "--url needs a value"
+			url="$2"
+			shift 2
+			;;
+		*) die "unknown screenshot flag: $1" ;;
+		esac
+	done
+	[ -n "$path" ] || die "screenshot needs --path FILE"
+	load_state
+	case "$url" in
+	/*) ;;
+	http://*|https://*) ;;
+	*) die "--url must be a path or URL" ;;
+	esac
+	local target
+	case "$url" in
+	http://*|https://*) target="$url" ;;
+	*) target="$(origin)$url" ;;
+	esac
+	mkdir -p "$(dirname "$path")"
+	local chrome
+	chrome="$(chrome_bin)" || die "google-chrome not found"
+	local profile
+	profile="$(mktemp -d "$TMP_DIR/chrome.XXXXXX")"
+	set +e
+	timeout 40 "$chrome" --headless=new --disable-gpu --no-sandbox --window-size=1280,800 \
+		--virtual-time-budget=15000 --run-all-compositor-stages-before-draw \
+		--user-data-dir="$profile" --screenshot="$path" "$target" >/dev/null 2>&1
+	local rc=$?
+	set -e
+	rm -rf "$profile"
+	[ -s "$path" ] || die "screenshot produced empty file at $path (chrome rc=$rc)"
+	printf 'screenshot=%s bytes=%s url=%s\n' "$path" "$(wc -c <"$path" | tr -d ' ')" "$target"
+}
+
+cmd_drive_root_redirect() {
+	load_state
+	cmd_doctor >/dev/null
+	local dest="$PROOF_DIR/root-redirect"
+	mkdir -p "$dest"
+	cmd_doctor >"$dest/doctor.txt"
+
+	http_request GET / 0 "" "$dest/root.body" "$dest/root.headers" >"$dest/root.meta.txt"
+	http_request GET /index.html 0 "" "$dest/index.body" "$dest/index.headers" >"$dest/index.meta.txt"
+	http_request GET / 1 "" "$dest/followed.body" "$dest/followed.headers" >"$dest/followed.meta.txt"
+	http_request GET /admin 1 "" "$dest/admin.body" "$dest/admin.headers" >"$dest/admin.meta.txt"
+	http_request GET /_health 0 "" "$dest/health.body" "$dest/health.headers" >"$dest/health.meta.txt"
+
+	python3 - "$dest" <<'PY'
+from pathlib import Path
+import sys
+dest = Path(sys.argv[1])
+admin = (dest / "admin.body").read_text(errors="replace")
+excerpt = admin[:4000]
+(dest / "admin.excerpt.txt").write_text(excerpt)
+PY
+
+	if chrome_bin >/dev/null 2>&1; then
+		cmd_screenshot --path "$dest/admin.png" --url /admin >"$dest/screenshot.meta.txt" || true
+	else
+		printf 'screenshot=skipped (no google-chrome)\n' >"$dest/screenshot.meta.txt"
+	fi
+
+	python3 - "$dest" "$(origin)" <<'PY'
+import json, sys
+from pathlib import Path
+dest = Path(sys.argv[1])
+origin = sys.argv[2]
+
+def meta(name):
+    text = (dest / name).read_text(errors="replace")
+    out = {}
+    for line in text.splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            out[k] = v
+    return out
+
+root = meta("root.meta.txt")
+index = meta("index.meta.txt")
+followed = meta("followed.meta.txt")
+admin = meta("admin.meta.txt")
+health = meta("health.meta.txt")
+checks = []
+
+def require(ok, label, detail):
+    checks.append({"ok": bool(ok), "label": label, "detail": detail})
+
+require(root.get("status") == "302", "GET / is 302", root.get("status"))
+require((root.get("location") or "").endswith("/admin") or root.get("location") == "/admin",
+        "GET / Location /admin", root.get("location"))
+require(index.get("status") == "302", "GET /index.html is 302", index.get("status"))
+require((index.get("location") or "").endswith("/admin") or index.get("location") == "/admin",
+        "GET /index.html Location /admin", index.get("location"))
+require(health.get("status") == "204", "GET /_health is 204", health.get("status"))
+require("location" not in health or not str(health.get("location","")).endswith("/admin"),
+        "GET /_health is not redirected to /admin", health.get("location",""))
+require(admin.get("status") == "200", "GET /admin is 200", admin.get("status"))
+require("Strapi" in admin.get("markers",""), "GET /admin contains Strapi", admin.get("markers"))
+png = dest / "admin.png"
+require(png.exists() and png.stat().st_size > 0, "admin.png captured", str(png.exists()))
+
+failed = [c for c in checks if not c["ok"]]
+manifest = {
+    "feature": "root-redirect",
+    "baseUrl": origin,
+    "commands": [
+        "verify-strapi doctor",
+        "verify-strapi http GET / --no-follow",
+        "verify-strapi http GET /index.html --no-follow",
+        "verify-strapi http GET /",
+        "verify-strapi http GET /admin",
+        "verify-strapi http GET /_health --no-follow",
+        "verify-strapi screenshot --path proof/root-redirect/admin.png --url /admin",
+    ],
+    "checks": checks,
+    "ok": not failed,
+}
+(dest / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+run = dest / "run.md"
+lines = [
+    "# root-redirect proof",
+    "",
+    f"baseUrl: {origin}",
+    "",
+    "## Actions",
+    "",
+    "- GET / --no-follow -> status %s location %s" % (root.get("status"), root.get("location")),
+    "- GET /index.html --no-follow -> status %s location %s" % (index.get("status"), index.get("location")),
+    "- GET / (follow) -> status %s final %s" % (followed.get("status"), followed.get("final")),
+    "- GET /admin -> status %s markers %s" % (admin.get("status"), admin.get("markers")),
+    "- GET /_health --no-follow -> status %s" % health.get("status"),
+    "",
+    "## Checks",
+    "",
+]
+for c in checks:
+    mark = "PASS" if c["ok"] else "FAIL"
+    lines.append(f"- {mark}: {c['label']} ({c['detail']})")
+run.write_text("\n".join(lines) + "\n")
+if failed:
+    sys.exit("drive root-redirect failed: " + ", ".join(c["label"] for c in failed))
+print("drive=root-redirect ok=true dest=" + str(dest))
+PY
+}
+
+cmd_cleanup() {
+	if [ -f "$STATE_FILE" ]; then
+		# shellcheck disable=SC1090
+		. "$STATE_FILE"
+		if [ -n "${PID:-}" ]; then
+			stop_pid_tree "$PID"
+		fi
+		if [ -n "${PG_PID:-}" ]; then
+			stop_pid_tree "$PG_PID"
+		fi
+	fi
+	rm -f "$STATE_FILE" "$ENV_FILE" "$TMP_DIR/curl.err"
+	rm -rf "$PG_DIR"
+	# Keep logs for a failed run until the next launch overwrites them.
+	# pgdata is disposable verify scaffolding.
+	rm -rf "$PGDATA"
+	rm -rf "$TMP_DIR"/chrome.*
+	if [ -f "$ROOT/node_modules/@types/bun/.verify-strapi-scaffold" ]; then
+		rm -rf "$ROOT/node_modules/@types/bun"
+	fi
+	printf 'cleanup: stopped owned processes; proof kept at %s\n' "$PROOF_DIR"
+}
+
+cmd_self_check() {
+	usage >/dev/null
+	if [ -f "$STATE_FILE" ]; then
+		printf 'self-check: state exists; not asserting doctor-without-instance\n'
+		return 0
+	fi
+	set +e
+	out="$(cmd_doctor 2>&1)"
+	rc=$?
+	set -e
+	[ "$rc" -ne 0 ] || die "doctor without instance should fail"
+	printf 'self-check: help ok; doctor-without-instance rc=%s\n' "$rc"
+}
+
+cmd="${1:-help}"
+shift || true
+case "$cmd" in
+launch) cmd_launch "$@" ;;
+doctor) cmd_doctor "$@" ;;
+http) cmd_http "$@" ;;
+screenshot) cmd_screenshot "$@" ;;
+drive)
+	feat="${1:-}"
+	[ "$feat" = "root-redirect" ] || die "drive supports root-redirect (got '${feat:-empty}')"
+	cmd_drive_root_redirect
+	;;
+cleanup) cmd_cleanup "$@" ;;
+self-check) cmd_self_check "$@" ;;
+help|-h|--help) usage ;;
+*) die "unknown command: $cmd" ;;
+esac

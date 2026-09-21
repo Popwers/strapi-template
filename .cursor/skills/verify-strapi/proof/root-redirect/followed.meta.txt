@@ -1,0 +1,5 @@
+status=200
+request=GET http://127.0.0.1:1341/
+final=http://127.0.0.1:1341/admin
+location=/admin
+markers=Strapi

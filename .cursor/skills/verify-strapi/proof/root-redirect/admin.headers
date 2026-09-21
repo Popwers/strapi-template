@@ -1,0 +1,23 @@
+HTTP/1.1 200 OK
+Content-Security-Policy: connect-src 'self' https: 'self' http: https: ws:;img-src 'self' data: blob: https://market-assets.strapi.io;media-src 'self' data: blob:;script-src 'self' 'unsafe-inline';default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';style-src 'self' https: 'unsafe-inline'
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+Vary: Origin, Accept-Encoding
+Access-Control-Allow-Origin: 
+Access-Control-Allow-Credentials: true
+Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+Pragma: no-cache
+Expires: 0
+Surrogate-Control: no-store
+Content-Type: text/html; charset=utf-8
+Content-Length: 1870
+X-Powered-By: Strapi <strapi.io>
+Date: Mon, 21 Sep 2026 07:51:08 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
