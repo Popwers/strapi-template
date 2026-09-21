@@ -1,0 +1,11 @@
+pid=4068735
+port=1341
+pg_pid=4068682
+pgport=5441
+origin=http://127.0.0.1:1341
+owned=true
+health=204
+root=302
+location=/admin
+admin=200
+markers=Strapi

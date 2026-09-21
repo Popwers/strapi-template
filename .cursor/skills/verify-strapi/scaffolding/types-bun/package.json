@@ -1,0 +1,6 @@
+{
+	"name": "@types/bun",
+	"version": "0.0.0-verify-strapi",
+	"description": "Verification scaffolding so strapi develop can typecheck tests/. Not the real @types/bun.",
+	"types": "index.d.ts"
+}
