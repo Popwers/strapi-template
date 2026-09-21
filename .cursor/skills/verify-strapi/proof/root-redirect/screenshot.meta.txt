@@ -1,0 +1,1 @@
+screenshot=/workspace/maintain-verify-20260921/strapi-template/.cursor/skills/verify-strapi/proof/root-redirect/admin.png bytes=48045 url=http://127.0.0.1:1341/admin
