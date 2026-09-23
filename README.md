@@ -8,7 +8,7 @@ Type `make` for the command list. `vp` delegates to npm (`package-lock.json`).
 
 After you clone this template, replace the placeholders before you go further.
 
-1. Rename the project. Set `name` in `package.json` and `repositoryUrl` in the `release` block (currently `https://github.com/your-repo`).
+1. Rename the project. Set `name` in `package.json`. semantic-release reads the repository from the git remote.
 2. Generate secrets. `cp .env.example .env && sh generate-keys.sh` (fills `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`; values are written to `.env` only, never printed).
 3. Set the sender address. `defaultFrom` / `defaultReplyTo` in `config/plugins.ts` (currently `not-reply@your-project.fr`).
 4. Name your backups. Change the backup file prefix in `src/index.ts` (currently `name-of-your-company-strapi-backup-`).

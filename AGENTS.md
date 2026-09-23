@@ -70,7 +70,7 @@ A cron (default every 6 hours, `CRON_SCHEDULE`) runs `pg_dump`, exports Strapi d
 
 ### Sentry
 
-`src/sentry.ts` reports errors in production.
+`@strapi/plugin-sentry` (`config/plugins.ts`) runs in production when `SENTRY_DSN` is set. Events carry `SENTRY_RELEASE`, falling back to `SOURCE_COMMIT`. `src/sentry.ts` forwards caught errors to it.
 
 ### REST defaults (`config/api.ts`)
 

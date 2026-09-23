@@ -45,11 +45,11 @@ export default ({ env }) => ({
 			},
 		},
 	},
-	/*sentry: {
-		// Only report from production; dev/staging noise stays out of the dashboard.
-		enabled: env('NODE_ENV') === 'production',
+	sentry: {
+		// Only report from production with a DSN; dev/staging noise stays out of the dashboard.
+		enabled: env('NODE_ENV') === 'production' && Boolean(env('SENTRY_DSN')),
 		config: {
-			dsn: '',
+			dsn: env('SENTRY_DSN'),
 			sendMetadata: true,
 			init: {
 				// Tag each event with the deployed commit so an error maps back to the
@@ -58,7 +58,8 @@ export default ({ env }) => ({
 				// Drop expected client errors before they reach Sentry — failed logins,
 				// permission denials and rate limits are user/4xx noise, not server bugs.
 				beforeSend: (event, hint) => {
-					const error = hint?.originalException as { name?: string; message?: string } | undefined;
+					const original = hint?.originalException;
+					const error = original instanceof Error ? original : undefined;
 					const name = error?.name ?? event.exception?.values?.[0]?.type;
 					const NOISE = ['UnauthorizedError', 'ForbiddenError', 'RateLimitError', 'PolicyError'];
 					if (name && NOISE.includes(name)) return null;
@@ -76,5 +77,5 @@ export default ({ env }) => ({
 				},
 			},
 		},
-	},*/
+	},
 });
