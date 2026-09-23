@@ -1,7 +1,7 @@
 {
   "name": "strapi-template",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Strapi CMS",
   "scripts": {
     "dev": "strapi develop",
