@@ -12,6 +12,7 @@ Type `make` for the list.
 | Strapi develop | `make dev` | `vp run dev` → `strapi develop` |
 | Lint + fmt + types | `make check` | `vp check` |
 | Tests | `make test` | `vp test` |
+| E2E (HTTP + admin) | `make e2e` | `vp run test:e2e` → Playwright, `tests/e2e/` |
 | Admin + server build | `make build` | `vp run build` → `strapi build` |
 | Generate TS types | `vp run gen:types` | `strapi ts:generate-types --debug` |
 | Create missing secrets | `./generate-keys.sh` | fills empty secret vars in `.env` |
@@ -19,6 +20,10 @@ Type `make` for the list.
 API: `http://localhost:1337`. Admin: `http://localhost:1337/admin`.
 
 Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` writes hooks into `.vite-hooks/`. Staged check is `vp check --fix`.
+
+## E2E
+
+`make e2e` runs Playwright from `tests/e2e/`. Needs Docker and a Chromium (`npx playwright install chromium` once). `start-server.sh` starts a throwaway `postgres:18-alpine` on port 5447, builds Strapi, creates an admin, and serves on port 1347 in production mode. `global-setup.ts` grants the authenticated role `user.update` and `user.updateAvatar` and creates an `admin` type role. The container is removed when the run ends. Override ports with `E2E_PORT` and `E2E_DB_PORT`. Report: `tests/e2e/playwright-report/`.
 
 ## Docker
 
@@ -43,6 +48,7 @@ database/migrations/    SQL migrations
 public/uploads/         Media
 generate-keys.sh        Secret generator
 tests/                  Vitest
+tests/e2e/              Playwright E2E (real Strapi + throwaway Postgres)
 vite.config.ts          Lint, fmt, staged, test
 ```
 

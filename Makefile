@@ -2,7 +2,7 @@
 
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help install check test dev build
+.PHONY: help install check test e2e dev build
 
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-18s %s\n", $$1, $$2} END {printf "\n"}' $(MAKEFILE_LIST)
@@ -16,6 +16,9 @@ check: ## Run vp check (lint + fmt + typecheck)
 
 test: ## Run the Vitest suite
 	@vp test
+
+e2e: ## Run the Playwright E2E suite (needs Docker)
+	@vp run test:e2e
 
 dev: ## Start Strapi develop (never vp dev)
 	@vp run dev
