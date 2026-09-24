@@ -1,0 +1,3 @@
+[test]
+# Scan only the sources. `strapi build` also compiles tests/ into dist/.
+root = "tests"
