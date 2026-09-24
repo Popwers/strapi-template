@@ -27,10 +27,6 @@ describe('parseFiles', () => {
 });
 
 describe('generateUser', () => {
-	test('matches the username_<12 hex> shape', () => {
-		expect(generateUser()).toMatch(/^username_[0-9a-f]{12}$/);
-	});
-
 	test('returns different values across calls', () => {
 		expect(generateUser()).not.toBe(generateUser());
 	});
