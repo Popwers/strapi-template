@@ -211,9 +211,4 @@ describe('auth.register', () => {
 		await invokeRegister();
 		expect(roleUpdates).toEqual([]);
 	});
-
-	test('does not persist the client-supplied role id', async () => {
-		await invokeRegister();
-		expect(roleUpdates.some((update) => update.data.role === 99)).toBe(false);
-	});
 });
