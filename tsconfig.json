@@ -20,6 +20,6 @@
 		"src/plugins/**",
 		"tools/",
 		"types/generated/**",
-		"vite.config.ts"
+		"vite.config.mts"
 	]
 }

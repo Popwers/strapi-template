@@ -104,4 +104,4 @@ The API is at `http://localhost:1337`. The admin panel is at `http://localhost:1
 | Dev server | `make dev` |
 | Production build | `make build` |
 
-Lint, format, and typecheck are Vite+ (`vite-plus`), configured in `vite.config.ts`. anti-slop is vendored from https://github.com/dmmulroy/anti-slop. This template has no Tailwind, so it does not use `@shadcn/lint` or `cn`.
+Lint, format, and typecheck are Vite+ (`vite-plus`), configured in `vite.config.mts`. anti-slop is vendored from https://github.com/dmmulroy/anti-slop. This template has no Tailwind, so it does not use `@shadcn/lint` or `cn`.

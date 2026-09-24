@@ -28,7 +28,7 @@ LICENSE
 
 # Configuration files (not needed in container)
 .editorconfig
-vite.config.ts
+vite.config.mts
 .vite-hooks
 tools/oxlint
 

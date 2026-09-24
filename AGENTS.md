@@ -43,7 +43,7 @@ database/migrations/    SQL migrations
 public/uploads/         Media
 generate-keys.sh        Secret generator
 tests/                  Vitest
-vite.config.ts          Lint, fmt, staged, test
+vite.config.mts         Lint, fmt, staged, test
 ```
 
 PostgreSQL only. `config/database.ts` does not support other clients.
