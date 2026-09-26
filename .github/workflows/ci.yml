@@ -1,0 +1,59 @@
+name: CI
+
+on:
+    pull_request:
+    push:
+        branches:
+            - master
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  cache: true
+            - run: vp check
+
+    unit:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  cache: true
+            - run: vp test run
+
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - uses: actions/checkout@v7
+            - uses: voidzero-dev/setup-vp@v1.21.1
+              with:
+                  cache: true
+            - name: Cache Playwright browsers
+              uses: actions/cache@v6
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+            - name: Install Chromium and its system dependencies
+              run: node_modules/.bin/playwright install --with-deps chromium
+            - run: vp run e2e
+            - name: Upload Playwright report and traces
+              if: failure()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: playwright-report
+                  path: |
+                      tests/e2e/playwright-report/
+                      tests/e2e/test-results/
+                  retention-days: 14
