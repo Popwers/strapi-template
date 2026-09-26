@@ -133,3 +133,7 @@ types/generated/*
 
 # Vite+ git hooks
 .vite-hooks/
+
+# Playwright
+tests/e2e/test-results
+tests/e2e/playwright-report
