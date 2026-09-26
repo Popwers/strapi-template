@@ -12,7 +12,7 @@ Type `make` for the list.
 | Strapi develop | `make dev` | `vp run dev` → `strapi develop` |
 | Lint + fmt + types | `make check` | `vp check` |
 | Tests | `make test` | `vp test` |
-| E2E (HTTP + admin) | `make e2e` | `vp run test:e2e` → Playwright, `tests/e2e/` |
+| E2E (HTTP + admin) | `make e2e` | `vp run e2e` → Playwright, `tests/e2e/` |
 | Admin + server build | `make build` | `vp run build` → `strapi build` |
 | Generate TS types | `vp run gen:types` | `strapi ts:generate-types --debug` |
 | Create missing secrets | `./generate-keys.sh` | fills empty secret vars in `.env` |

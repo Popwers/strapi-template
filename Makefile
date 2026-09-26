@@ -18,7 +18,7 @@ test: ## Run the Vitest suite
 	@vp test
 
 e2e: ## Run the Playwright E2E suite (needs Docker)
-	@vp run test:e2e
+	@vp run e2e
 
 dev: ## Start Strapi develop (never vp dev)
 	@vp run dev

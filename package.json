@@ -11,7 +11,7 @@
     "test": "vp test",
     "gen:types": "strapi ts:generate-types --debug",
     "upgrade": "npx @strapi/upgrade latest",
-    "test:e2e": "playwright test -c tests/e2e"
+    "e2e": "playwright test -c tests/e2e"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1133.0",
