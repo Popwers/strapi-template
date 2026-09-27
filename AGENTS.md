@@ -49,7 +49,7 @@ public/uploads/         Media
 generate-keys.sh        Secret generator
 tests/                  Vitest
 tests/e2e/              Playwright E2E (real Strapi + throwaway Postgres)
-vite.config.ts          Lint, fmt, staged, test
+vite.config.mts         Lint, fmt, staged, test
 ```
 
 PostgreSQL only. `config/database.ts` does not support other clients.
