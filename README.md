@@ -101,6 +101,7 @@ The API is at `http://localhost:1337`. The admin panel is at `http://localhost:1
 | Lint, format, typecheck | `make check` |
 | Auto-fix | `vp check --fix` |
 | Tests | `make test` |
+| E2E (Docker + Playwright) | `make e2e` |
 | Dev server | `make dev` |
 | Production build | `make build` |
 
