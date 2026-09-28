@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Popwers/strapi-template/compare/v1.0.0...v1.0.1) (2026-09-28)
+
+
+### Performance Improvements
+
+* **admin:** defer highlight.js language pack out of the admin entry ([#15](https://github.com/Popwers/strapi-template/issues/15)) ([4d583df](https://github.com/Popwers/strapi-template/commit/4d583dfea9941ddd4e824b6b4db21e96ef0c9001))
+
 # 1.0.0 (2026-09-23)
 
 
