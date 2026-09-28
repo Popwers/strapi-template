@@ -1,0 +1,9 @@
+{
+  "data": null,
+  "error": {
+    "status": 400,
+    "name": "ApplicationError",
+    "message": "You cannot register a new super admin",
+    "details": {}
+  }
+}

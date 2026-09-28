@@ -33,6 +33,6 @@ Preconditions:
 ## Gotchas
 
 - Following redirects on `GET /` yields 200 `/admin` and hides the 302. Always capture `--no-follow` for the redirect itself.
-- `GET /_health` must remain 204. A redirect there would break the Docker healthcheck.
+- `GET /_health` must remain 204. The prod image `HEALTHCHECK` is `curl --fail` without `-L`, so a 302 would not by itself fail that probe. Doctor still requires 204.
 - Port `1337` on this machine is often a foreign Strapi. Doctor must match this run's state file.
 - First boot compiles the admin SPA; `/admin` 200 with an empty body is a miss — require the `Strapi` marker.

@@ -42,8 +42,8 @@ verify-strapi <command>
 Commands:
   launch [--port N] [--pg-port N] [--json]   Start isolated Postgres + strapi develop
   doctor [--json]                            Read-only health check (exit 0 = driveable)
-  http GET PATH [--no-follow]                Request against the owned origin
-  http POST PATH --json '{...}'              JSON POST against the owned origin
+  http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE]
+                                             Request against the owned origin. --out-body keeps the response body.
   screenshot --path FILE [--url /p]          Headless Chrome PNG
   drive root-redirect                        Scripted root-redirect recipe + proof/
   cleanup                                    Stop what launch started (keep proof/)
@@ -173,9 +173,9 @@ ensure_deps() {
 }
 
 ensure_bun_types() {
-	# package.json lists @types/bun but this lockfile does not install it.
-	# `strapi develop` typechecks tests/ (`import from 'bun:test'`). Copy skill-local
-	# stubs into node_modules/@types/bun. Marked and removed in cleanup.
+	# Lockfile installs @types/bun. If it is absent, copy skill-local stubs so
+	# `strapi develop` can typecheck tests/ (`import from 'bun:test'`).
+	# The marker is what cleanup removes; a real install is left alone.
 	local src dst marker
 	src="$SKILL_DIR/scaffolding/types-bun"
 	dst="$ROOT/node_modules/@types/bun"
@@ -455,6 +455,10 @@ markers=Strapi
 EOF
 }
 
+# Repeatable request extras for the current http_request call.
+HDRS=()
+FORMS=()
+
 http_request() {
 	local method="$1" path="$2" follow="$3" json_body="${4:-}"
 	local out_body="${5:-}" out_headers="${6:-}"
@@ -475,8 +479,22 @@ http_request() {
 	else
 		curl_args+=(-L)
 	fi
+	if [ -n "$json_body" ] && [ "${#FORMS[@]}" -gt 0 ]; then
+		die "http cannot combine --json and --form"
+	fi
 	if [ -n "$json_body" ]; then
 		curl_args+=(-H 'Content-Type: application/json' --data "$json_body")
+	fi
+	local extra
+	if [ "${#HDRS[@]}" -gt 0 ]; then
+		for extra in "${HDRS[@]}"; do
+			curl_args+=(-H "$extra")
+		done
+	fi
+	if [ "${#FORMS[@]}" -gt 0 ]; then
+		for extra in "${FORMS[@]}"; do
+			curl_args+=(-F "$extra")
+		done
 	fi
 
 	set +e
@@ -523,7 +541,9 @@ http_request() {
 }
 
 cmd_http() {
-	local method="${1:-}" path="${2:-}" follow=1 json_body=""
+	local method="${1:-}" path="${2:-}" follow=1 json_body="" out_body=""
+	HDRS=()
+	FORMS=()
 	shift $(( $# >= 1 ? 1 : 0 )) || true
 	shift $(( $# >= 1 ? 1 : 0 )) || true
 	[ -n "$method" ] || die "http needs METHOD PATH"
@@ -536,10 +556,25 @@ cmd_http() {
 			json_body="$2"
 			shift 2
 			;;
+		--header)
+			[ $# -ge 2 ] || die "--header needs a value"
+			HDRS+=("$2")
+			shift 2
+			;;
+		--form)
+			[ $# -ge 2 ] || die "--form needs a value"
+			FORMS+=("$2")
+			shift 2
+			;;
+		--out-body)
+			[ $# -ge 2 ] || die "--out-body needs a value"
+			out_body="$2"
+			shift 2
+			;;
 		*) die "unknown http flag: $1" ;;
 		esac
 	done
-	http_request "$method" "$path" "$follow" "$json_body"
+	http_request "$method" "$path" "$follow" "$json_body" "$out_body"
 }
 
 chrome_bin() {

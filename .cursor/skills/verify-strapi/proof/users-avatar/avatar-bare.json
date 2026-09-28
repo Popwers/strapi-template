@@ -1,0 +1,9 @@
+{
+  "data": null,
+  "error": {
+    "status": 400,
+    "name": "BadRequestError",
+    "message": "No avatar provided",
+    "details": {}
+  }
+}

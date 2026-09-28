@@ -1,0 +1,41 @@
+{
+  "feature": "users-register",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http POST /api/auth/local/register",
+    "verify-strapi http GET /api/users/me --header Authorization"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "register email",
+      "detail": "username_59354096c863"
+    },
+    {
+      "ok": true,
+      "label": "username ignored",
+      "detail": "username_866766c4b4f1"
+    },
+    {
+      "ok": true,
+      "label": "role ignored",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "provider ignored",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "me matches",
+      "detail": "username_59354096c863"
+    },
+    {
+      "ok": true,
+      "label": "me without token 403",
+      "detail": "403"
+    }
+  ],
+  "ok": true
+}

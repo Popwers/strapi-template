@@ -23,7 +23,7 @@ What launch does:
 
 1. Writes `/tmp/verify-strapi/state` and `run.env` (generated `APP_KEYS` / salts / JWT secrets, never committed, never printed).
 2. Puts Postgres 18 binaries on `PATH` (`~/.local/opt/postgresql-*/bin` or `/usr/lib/postgresql/*/bin`).
-3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). If `node_modules/@types/bun` is missing (listed in `package.json`, not installed by this lockfile), launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker. That is verification scaffolding so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory when the marker is present. It does not change `package.json` or `package-lock.json`.
+3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). The lockfile installs `@types/bun`. If that directory is still missing, launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory only when the marker is present. It does not change `package.json` or `package-lock.json`.
 4. Starts a **native** Postgres on `VERIFY_PGPORT` (default `5441`) with user/db `strapi_verify` / `strapi_verify` in `/tmp/verify-strapi/pgdata`. Does not use `docker compose` (compose pins container names `strapi-cms` / `strapi-cms-db` and host ports `1337` / `5432`).
 5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` (shared-box shells inject other stacks). Exports disposable env only — **does not write repo `.env`**.
 6. Starts `vp run dev` (falls back to `npm run dev`) which runs `strapi develop` from the repo root with `HOST=127.0.0.1`, `PORT=<http>`, `PUBLIC_URL=http://127.0.0.1:<http>`, `NODE_ENV=development`. Do not use `node --run dev` on Node 20 — that flag needs Node 22+. Backup cron in `src/index.ts` returns immediately in development; dummy `S3_*` values are never used.
@@ -78,6 +78,8 @@ Harness is `verify-strapi` (HTTP + optional Chrome). Prefer HTTP for status, red
 .cursor/skills/verify-strapi/bin/verify-strapi http GET /admin
 .cursor/skills/verify-strapi/bin/verify-strapi http GET /admin/init
 .cursor/skills/verify-strapi/bin/verify-strapi http POST /api/auth/local/register --json '{"email":"user@example.com","password":"VerifyPass1!"}'
+.cursor/skills/verify-strapi/bin/verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt>'
+.cursor/skills/verify-strapi/bin/verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'
 .cursor/skills/verify-strapi/bin/verify-strapi screenshot --path artifacts/admin.png --url /admin
 .cursor/skills/verify-strapi/bin/verify-strapi drive root-redirect
 ```
@@ -93,17 +95,18 @@ Stable handles from this repo:
 | First-admin wizard | `/admin` form fields firstname, lastname, email, password (Strapi 5 welcome screen) |
 | First-admin API | `POST /admin/register-admin` with `email`, `password`, `firstname`, `lastname` |
 | Admin login | `/admin` login after `hasAdmin` is true; `POST /admin/login` |
-| Users register | `POST /api/auth/local/register` body `email` + `password` only (`config/plugins.ts` `allowedFields: []`) |
+| Users register | `POST /api/auth/local/register` with `email` + `password`. The extension replaces the body with those two fields plus a generated username (`strapi-server.ts`) |
 | Generated username | response `user.username` matches `username_<12 hex chars>` (`src/extensions/users-permissions/helper.ts`) |
-| Role strip | extra JSON keys (`role`, `provider`) → 400 `Invalid parameters` |
-| Avatar | `POST /api/users/avatar` multipart field `files.avatar`, authenticated (`strapi-server.ts`) |
+| Extra register keys | `role`, `provider`, and a client `username` are dropped. The POST still returns 200 and a generated username. It does not return 400 |
+| Avatar | `POST /api/users/avatar` multipart field `files.avatar`. Anonymous and ungranted calls are 403 until the Authenticated role has `user.updateAvatar` |
+| Profile update | `PUT /api/users/:id` (numeric id). Owner may change `username`. `blocked`, `role`, `provider`, and `confirmed` are stripped. Other users and anonymous callers get 403 |
 | User content-type label | Content-Manager display name `Utilisateur` |
 | Admin locales | `fr`, `fr-FR`, `en` (`src/admin/app.tsx`) |
 | Default REST page | `defaultLimit` 25, `maxLimit` 100 (`config/api.ts`) |
 
 There are no `data-testid` attributes in this template. Do not use coordinates or tab order. Prefer `/admin/init`, `/_health`, and the redirect `Location` header.
 
-Public users-permissions routes (`register`, `login`, `me`) are granted on a fresh Strapi install. `POST /api/users/avatar` is a custom route; the Authenticated role must include it or the call is 403. Report that path `verified-unreachable` until the permission is granted through the admin UI.
+Public `auth.register` and authenticated `user.me` are granted on a fresh Strapi install. `POST /api/users/avatar` and `PUT /api/users/:id` are 403 until an admin enables `user.updateAvatar` and `user.update` on the Authenticated role (`PUT /users-permissions/roles/:id` with the role's existing `permissions` object, those actions `enabled: true`). A 403 before that grant is the fresh-database state, not a missing route. Anonymous avatar upload is also 403 (the permission layer runs before the controller's 401).
 
 ## Evidence
 
@@ -151,8 +154,7 @@ If launch failed halfway, run cleanup anyway. The state file records whatever wa
 | --- | --- |
 | `launch [--port N] [--pg-port N]` | Start isolated Postgres + `strapi develop`, write state, wait for `/_health` |
 | `doctor` | Read-only ownership + health check |
-| `http GET PATH [--no-follow]` | Request against the owned origin |
-| `http POST PATH --json '{...}'` | JSON POST against the owned origin |
+| `http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE]` | Request against the owned origin. Repeat `--header` and `--form`. Do not combine `--json` and `--form`. `--out-body` copies the response body; redact tokens before committing proof |
 | `screenshot --path FILE [--url /path]` | Headless Chrome PNG of a path |
 | `drive root-redirect` | Scripted recipe + `proof/root-redirect/`. Other feature IDs are driven with `http` from their feature file |
 | `cleanup` | Tear down what this run started |
