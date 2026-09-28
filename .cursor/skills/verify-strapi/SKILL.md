@@ -11,7 +11,7 @@ Read `features/README.md` before driving. Drive one mapped feature per recipe. D
 
 ## Launch
 
-Isolated native stack only. Default HTTP port is **1341** and default Postgres port is **5441** so a human `docker compose` on `1337`/`5432` and other shared-box listeners (`1337`–`1340`, `5433`, `5437`) are left alone.
+Isolated native stack only. Default HTTP port is **1341** and default Postgres port is **5441** so a human `docker compose` on `1337`/`5432` and other local stacks that often sit on `1337`–`1340`, `5433`, `5437` are left alone.
 
 ```bash
 .cursor/skills/verify-strapi/bin/verify-strapi launch
@@ -25,7 +25,7 @@ What launch does:
 2. Puts Postgres 18 binaries on `PATH` (`~/.local/opt/postgresql-*/bin` or `/usr/lib/postgresql/*/bin`).
 3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). The lockfile installs `@types/bun`. If that directory is still missing, launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory only when the marker is present. It does not change `package.json` or `package-lock.json`.
 4. Starts a **native** Postgres on `VERIFY_PGPORT` (default `5441`) with user/db `strapi_verify` / `strapi_verify` in `/tmp/verify-strapi/pgdata`. Does not use `docker compose` (compose pins container names `strapi-cms` / `strapi-cms-db` and host ports `1337` / `5432`).
-5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` (shared-box shells inject other stacks). Exports disposable env only — **does not write repo `.env`**.
+5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` (agent or CI shells may inject another stack's values). Exports disposable env only — **does not write repo `.env`**.
 6. Starts `vp run dev` (falls back to `npm run dev`) which runs `strapi develop` from the repo root with `HOST=127.0.0.1`, `PORT=<http>`, `PUBLIC_URL=http://127.0.0.1:<http>`, `NODE_ENV=development`. Do not use `node --run dev` on Node 20 — that flag needs Node 22+. Backup cron in `src/index.ts` returns immediately in development; dummy `S3_*` values are never used.
 7. Waits until `GET /_health` is 204 (first boot compiles the admin SPA; budget 5 minutes).
 
@@ -36,7 +36,10 @@ Teardown is `verify-strapi cleanup`. It kills the PIDs recorded in the state fil
 Manual equivalent (only when the CLI cannot run):
 
 ```bash
-export PATH="$HOME/.local/opt/postgresql-18.4.0-x86_64-unknown-linux-gnu/bin:$PATH"
+# Postgres 18 binaries: first match of ~/.local/opt/postgresql-*/bin, /usr/lib/postgresql/*/bin, or pg_config --bindir
+for d in "$HOME"/.local/opt/postgresql-*/bin /usr/lib/postgresql/*/bin "$(pg_config --bindir 2>/dev/null)"; do
+  [ -x "$d/initdb" ] && { export PATH="$d:$PATH"; break; }
+done
 initdb -D /tmp/verify-strapi/pgdata --auth-local=trust --auth-host=trust --username=strapi_verify --encoding=UTF8 --no-locale
 postgres -D /tmp/verify-strapi/pgdata -p 5441 -k /tmp/verify-strapi/pg -c listen_addresses=127.0.0.1
 createdb -h 127.0.0.1 -p 5441 -U strapi_verify strapi_verify
@@ -48,7 +51,7 @@ DATABASE_SSL=false NODE_ENV=development \
 vp run dev
 ```
 
-On the Camille shared verify box, acquire the workspace `live.lock` with `flock` **before** this launch binds ports, and release it after cleanup. Do not kill foreign processes.
+On a machine shared by several verify jobs, take that machine's shared lock (for example `flock` on its lock file) **before** this launch binds ports, and release it after cleanup. Do not kill foreign processes.
 
 ## Doctor
 
@@ -162,13 +165,13 @@ If launch failed halfway, run cleanup anyway. The state file records whatever wa
 
 `--json` on `doctor` and `launch` prints the state object.
 
-Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`).
+Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`), `VERIFY_EXTRA_PATH` (optional, colon-separated directories prepended to `PATH` when a tool such as `vp` lives somewhere non-standard). Proof files record paths relative to the repo (or to `VERIFY_EVIDENCE_DIR` when it lives elsewhere), never an absolute path.
 
 ## Isolation
 
 Two verify stacks can run if HTTP and Postgres ports both differ. Launch refuses a port that is already listening unless the recorded PID owns it. Do not drive a teammate's `:1337`. Do not start `docker compose` while another stack holds `strapi-cms` / `strapi-cms-db`. Do not write production secrets, DNS, Coolify, or SSH. Do not merge from this skill.
 
-On the shared Camille box, take `/workspace/maintain-verify-*/live.lock` with `flock -w 1200` before binding ports. Pick free alternate ports. Do not kill foreign processes. Release the lock after cleanup.
+On a machine shared by several verify jobs, take its shared lock (for example `flock -w 1200 <lock file>`) before binding ports. Pick free alternate ports. Do not kill foreign processes. Release the lock after cleanup.
 
 ## Maintenance
 

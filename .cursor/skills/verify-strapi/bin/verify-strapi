@@ -20,7 +20,8 @@ PG_PASSWORD="strapi_verify"
 
 ensure_path() {
 	local d vpnode
-	export PATH="${HOME}/.local/bin:${HOME}/.grok/bin:${HOME}/.bun/bin:/usr/local/bin:${PATH}"
+	# VERIFY_EXTRA_PATH: optional colon-separated dirs for tools in non-standard places.
+	export PATH="${VERIFY_EXTRA_PATH:+${VERIFY_EXTRA_PATH}:}${HOME}/.local/bin:${HOME}/.bun/bin:/usr/local/bin:${PATH}"
 	for d in "${HOME}/.local/opt/postgresql-"*/bin /usr/lib/postgresql/*/bin /usr/lib/postgresql/18/bin; do
 		if [ -x "${d}/initdb" ] && [ -x "${d}/postgres" ]; then
 			export PATH="${d}:${PATH}"
@@ -348,7 +349,7 @@ cmd_launch() {
 		# shellcheck disable=SC1090
 		. "$ENV_FILE"
 		set +a
-		# Node 20 (this box default) has no `node --run`. npm run / vp run invoke the same `dev` script.
+		# Node 20 (a common system default) has no `node --run`. npm run / vp run invoke the same `dev` script.
 		if command -v vp >/dev/null 2>&1; then
 			exec vp run dev
 		fi
@@ -627,7 +628,15 @@ cmd_screenshot() {
 	set -e
 	rm -rf "$profile"
 	[ -s "$path" ] || die "screenshot produced empty file at $path (chrome rc=$rc)"
-	printf 'screenshot=%s bytes=%s url=%s\n' "$path" "$(wc -c <"$path" | tr -d ' ')" "$target"
+	# Relative in proof files (to the repo, else to the evidence dir): never an absolute path.
+	local shown="${path#"$ROOT"/}"
+	case "$shown" in
+	/*) shown="${path#"$PROOF_DIR"/}" ;;
+	esac
+	case "$shown" in
+	/*) shown="$(basename "$path")" ;;
+	esac
+	printf 'screenshot=%s bytes=%s url=%s\n' "$shown" "$(wc -c <"$path" | tr -d ' ')" "$target"
 }
 
 cmd_drive_root_redirect() {

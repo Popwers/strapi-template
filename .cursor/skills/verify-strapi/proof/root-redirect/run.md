@@ -1,12 +1,12 @@
 # root-redirect proof
 
-baseUrl: http://127.0.0.1:1341
+baseUrl: http://127.0.0.1:1371
 
 ## Actions
 
 - GET / --no-follow -> status 302 location /admin
 - GET /index.html --no-follow -> status 302 location /admin
-- GET / (follow) -> status 200 final http://127.0.0.1:1341/admin
+- GET / (follow) -> status 200 final http://127.0.0.1:1371/admin
 - GET /admin -> status 200 markers Strapi
 - GET /_health --no-follow -> status 204
 

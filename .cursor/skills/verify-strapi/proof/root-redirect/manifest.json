@@ -1,6 +1,6 @@
 {
   "feature": "root-redirect",
-  "baseUrl": "http://127.0.0.1:1341",
+  "baseUrl": "http://127.0.0.1:1371",
   "commands": [
     "verify-strapi doctor",
     "verify-strapi http GET / --no-follow",
