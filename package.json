@@ -14,20 +14,20 @@
     "e2e": "playwright test -c tests/e2e"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1133.0",
-    "@strapi/plugin-sentry": "5.53.0",
-    "@strapi/plugin-users-permissions": "5.53.0",
-    "@strapi/provider-email-nodemailer": "5.53.0",
-    "@strapi/strapi": "5.53.0",
+    "@aws-sdk/client-s3": "^3.1141.0",
+    "@strapi/plugin-sentry": "5.55.1",
+    "@strapi/plugin-users-permissions": "5.55.1",
+    "@strapi/provider-email-nodemailer": "5.55.1",
+    "@strapi/strapi": "5.55.1",
     "pg": "^8.23.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.6",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "styled-components": "^6.5.3"
   },
   "devDependencies": {
-    "@oxlint/plugins": "1.83.0",
+    "@oxlint/plugins": "1.85.0",
     "@playwright/test": "^1.63.0",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
@@ -37,7 +37,7 @@
     "@types/react-dom": "^18",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
-    "vite-plus": "^0.3.2"
+    "vite-plus": "^0.3.3"
   },
   "author": {
     "name": "Lionel Bataille"
