@@ -1,0 +1,32 @@
+{
+  "feature": "admin-login",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http POST /admin/login (wrong password)",
+    "verify-strapi http POST /admin/login",
+    "verify-strapi http GET /admin/users/me --header Authorization"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "wrong password 400",
+      "detail": "400"
+    },
+    {
+      "ok": true,
+      "label": "login 200 token",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "admin me email",
+      "detail": "verify-admin@example.com"
+    },
+    {
+      "ok": true,
+      "label": "login.png",
+      "detail": "bytes"
+    }
+  ],
+  "ok": true
+}

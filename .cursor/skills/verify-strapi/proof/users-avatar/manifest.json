@@ -1,0 +1,57 @@
+{
+  "feature": "users-avatar",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http POST /api/users/avatar --form files.avatar",
+    "verify-strapi http PUT /users-permissions/roles/:id",
+    "verify-strapi http GET /api/users/me?populate=avatar --header Authorization"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "anonymous 403",
+      "detail": "403"
+    },
+    {
+      "ok": true,
+      "label": "before grant 403",
+      "detail": "403"
+    },
+    {
+      "ok": true,
+      "label": "grant ok",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "upload 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "bare field 400",
+      "detail": "400"
+    },
+    {
+      "ok": true,
+      "label": "populate avatar",
+      "detail": "qu66cmwh2o6kveun59ytwcmz"
+    },
+    {
+      "ok": true,
+      "label": "me omits avatar",
+      "detail": "['id', 'documentId', 'username', 'email', 'provider', 'confirmed', 'blocked', 'createdAt', 'updatedAt', 'publishedAt']"
+    },
+    {
+      "ok": true,
+      "label": "replaced documentId",
+      "detail": "qu66cmwh2o6kveun59ytwcmz->n2dk41sa64koukz32n2kw6ai"
+    },
+    {
+      "ok": true,
+      "label": "previous upload removed",
+      "detail": "2->2"
+    }
+  ],
+  "ok": true
+}

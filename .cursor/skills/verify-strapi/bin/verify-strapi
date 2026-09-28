@@ -20,7 +20,8 @@ PG_PASSWORD="strapi_verify"
 
 ensure_path() {
 	local d vpnode
-	export PATH="${HOME}/.local/bin:${HOME}/.grok/bin:${HOME}/.bun/bin:/usr/local/bin:${PATH}"
+	# VERIFY_EXTRA_PATH: optional colon-separated dirs for tools in non-standard places.
+	export PATH="${VERIFY_EXTRA_PATH:+${VERIFY_EXTRA_PATH}:}${HOME}/.local/bin:${HOME}/.bun/bin:/usr/local/bin:${PATH}"
 	for d in "${HOME}/.local/opt/postgresql-"*/bin /usr/lib/postgresql/*/bin /usr/lib/postgresql/18/bin; do
 		if [ -x "${d}/initdb" ] && [ -x "${d}/postgres" ]; then
 			export PATH="${d}:${PATH}"
@@ -42,8 +43,8 @@ verify-strapi <command>
 Commands:
   launch [--port N] [--pg-port N] [--json]   Start isolated Postgres + strapi develop
   doctor [--json]                            Read-only health check (exit 0 = driveable)
-  http GET PATH [--no-follow]                Request against the owned origin
-  http POST PATH --json '{...}'              JSON POST against the owned origin
+  http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE]
+                                             Request against the owned origin. --out-body keeps the response body.
   screenshot --path FILE [--url /p]          Headless Chrome PNG
   drive root-redirect                        Scripted root-redirect recipe + proof/
   cleanup                                    Stop what launch started (keep proof/)
@@ -173,9 +174,9 @@ ensure_deps() {
 }
 
 ensure_bun_types() {
-	# package.json lists @types/bun but this lockfile does not install it.
-	# `strapi develop` typechecks tests/ (`import from 'bun:test'`). Copy skill-local
-	# stubs into node_modules/@types/bun. Marked and removed in cleanup.
+	# Lockfile installs @types/bun. If it is absent, copy skill-local stubs so
+	# `strapi develop` can typecheck tests/ (`import from 'bun:test'`).
+	# The marker is what cleanup removes; a real install is left alone.
 	local src dst marker
 	src="$SKILL_DIR/scaffolding/types-bun"
 	dst="$ROOT/node_modules/@types/bun"
@@ -348,7 +349,7 @@ cmd_launch() {
 		# shellcheck disable=SC1090
 		. "$ENV_FILE"
 		set +a
-		# Node 20 (this box default) has no `node --run`. npm run / vp run invoke the same `dev` script.
+		# Node 20 (a common system default) has no `node --run`. npm run / vp run invoke the same `dev` script.
 		if command -v vp >/dev/null 2>&1; then
 			exec vp run dev
 		fi
@@ -455,6 +456,10 @@ markers=Strapi
 EOF
 }
 
+# Repeatable request extras for the current http_request call.
+HDRS=()
+FORMS=()
+
 http_request() {
 	local method="$1" path="$2" follow="$3" json_body="${4:-}"
 	local out_body="${5:-}" out_headers="${6:-}"
@@ -475,8 +480,22 @@ http_request() {
 	else
 		curl_args+=(-L)
 	fi
+	if [ -n "$json_body" ] && [ "${#FORMS[@]}" -gt 0 ]; then
+		die "http cannot combine --json and --form"
+	fi
 	if [ -n "$json_body" ]; then
 		curl_args+=(-H 'Content-Type: application/json' --data "$json_body")
+	fi
+	local extra
+	if [ "${#HDRS[@]}" -gt 0 ]; then
+		for extra in "${HDRS[@]}"; do
+			curl_args+=(-H "$extra")
+		done
+	fi
+	if [ "${#FORMS[@]}" -gt 0 ]; then
+		for extra in "${FORMS[@]}"; do
+			curl_args+=(-F "$extra")
+		done
 	fi
 
 	set +e
@@ -523,7 +542,9 @@ http_request() {
 }
 
 cmd_http() {
-	local method="${1:-}" path="${2:-}" follow=1 json_body=""
+	local method="${1:-}" path="${2:-}" follow=1 json_body="" out_body=""
+	HDRS=()
+	FORMS=()
 	shift $(( $# >= 1 ? 1 : 0 )) || true
 	shift $(( $# >= 1 ? 1 : 0 )) || true
 	[ -n "$method" ] || die "http needs METHOD PATH"
@@ -536,10 +557,25 @@ cmd_http() {
 			json_body="$2"
 			shift 2
 			;;
+		--header)
+			[ $# -ge 2 ] || die "--header needs a value"
+			HDRS+=("$2")
+			shift 2
+			;;
+		--form)
+			[ $# -ge 2 ] || die "--form needs a value"
+			FORMS+=("$2")
+			shift 2
+			;;
+		--out-body)
+			[ $# -ge 2 ] || die "--out-body needs a value"
+			out_body="$2"
+			shift 2
+			;;
 		*) die "unknown http flag: $1" ;;
 		esac
 	done
-	http_request "$method" "$path" "$follow" "$json_body"
+	http_request "$method" "$path" "$follow" "$json_body" "$out_body"
 }
 
 chrome_bin() {
@@ -592,7 +628,15 @@ cmd_screenshot() {
 	set -e
 	rm -rf "$profile"
 	[ -s "$path" ] || die "screenshot produced empty file at $path (chrome rc=$rc)"
-	printf 'screenshot=%s bytes=%s url=%s\n' "$path" "$(wc -c <"$path" | tr -d ' ')" "$target"
+	# Relative in proof files (to the repo, else to the evidence dir): never an absolute path.
+	local shown="${path#"$ROOT"/}"
+	case "$shown" in
+	/*) shown="${path#"$PROOF_DIR"/}" ;;
+	esac
+	case "$shown" in
+	/*) shown="$(basename "$path")" ;;
+	esac
+	printf 'screenshot=%s bytes=%s url=%s\n' "$shown" "$(wc -c <"$path" | tr -d ' ')" "$target"
 }
 
 cmd_drive_root_redirect() {

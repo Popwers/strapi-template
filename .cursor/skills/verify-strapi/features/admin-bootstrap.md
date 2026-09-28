@@ -12,7 +12,7 @@ Admin bootstrap is the first-run wizard that creates the only Super Admin on a f
 ## How to get to it (user POV)
 
 - Open `/admin` on a database that has never had an administrator.
-- Submit firstname, lastname, email, and password on the Strapi welcome screen.
+- Submit first name, last name, email, password, and confirm password on the Strapi welcome screen (`Let's start`). The API body is only `email`, `password`, `firstname`, and `lastname`.
 - Call `POST /admin/register-admin` with the same fields (API equivalent of the form).
 
 ## Driving it with verify-strapi

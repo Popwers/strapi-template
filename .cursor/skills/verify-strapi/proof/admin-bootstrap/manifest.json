@@ -1,0 +1,39 @@
+{
+  "feature": "admin-bootstrap",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http GET /admin/init",
+    "verify-strapi screenshot --path proof/admin-bootstrap/wizard.png --url /admin",
+    "verify-strapi http POST /admin/register-admin",
+    "verify-strapi http GET /admin/init",
+    "verify-strapi http POST /admin/register-admin (second)"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "hasAdmin false before",
+      "detail": "False"
+    },
+    {
+      "ok": true,
+      "label": "register-admin 200",
+      "detail": "200"
+    },
+    {
+      "ok": true,
+      "label": "hasAdmin true after",
+      "detail": "True"
+    },
+    {
+      "ok": true,
+      "label": "second register-admin 400",
+      "detail": "400"
+    },
+    {
+      "ok": true,
+      "label": "wizard.png",
+      "detail": "bytes"
+    }
+  ],
+  "ok": true
+}

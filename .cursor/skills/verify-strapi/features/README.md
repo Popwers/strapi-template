@@ -44,5 +44,6 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Root redirect](./root-redirect.md) covers `GET /` and `GET /index.html` sending the browser to `/admin`.
 - [Admin bootstrap](./admin-bootstrap.md) covers the first-administrator wizard and `hasAdmin`.
 - [Admin login](./admin-login.md) covers signing in after the first administrator exists.
-- [Users register](./users-register.md) covers public registration, generated usernames, and rejected extra fields.
+- [Users register](./users-register.md) covers public registration, generated usernames, and ignored extra fields.
 - [Users avatar](./users-avatar.md) covers authenticated avatar upload on `POST /api/users/avatar`.
+- [Users update](./users-update.md) covers an owner updating their own user and the rejection of other callers.

@@ -1,0 +1,46 @@
+{
+  "feature": "users-update",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http PUT /api/users/:id --header Authorization",
+    "verify-strapi http GET /api/users/me --header Authorization"
+  ],
+  "checks": [
+    {
+      "ok": true,
+      "label": "before grant 403",
+      "detail": "403"
+    },
+    {
+      "ok": true,
+      "label": "owner rename keeps blocked false",
+      "detail": "False"
+    },
+    {
+      "ok": true,
+      "label": "me after rename",
+      "detail": "renamed_live"
+    },
+    {
+      "ok": true,
+      "label": "other user 403",
+      "detail": "403"
+    },
+    {
+      "ok": true,
+      "label": "username unchanged",
+      "detail": "renamed_live"
+    },
+    {
+      "ok": true,
+      "label": "anonymous 403",
+      "detail": "403"
+    },
+    {
+      "ok": true,
+      "label": "PUT /api/users/me is 403",
+      "detail": "403"
+    }
+  ],
+  "ok": true
+}
