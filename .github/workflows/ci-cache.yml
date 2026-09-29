@@ -6,6 +6,7 @@ on:
     push:
         branches:
             - master
+            - chore/ci-faster
         paths:
             - 'package-lock.json'
             - 'package.json'
