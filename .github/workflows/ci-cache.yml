@@ -1,0 +1,41 @@
+name: CI cache
+
+# GitHub caches are scoped to a ref and pull requests never see each other's. CI runs on pull requests only,
+# so nothing else writes the default-branch scope that every PR can read. This workflow writes it.
+on:
+    push:
+        branches:
+            - master
+        paths:
+            - 'package-lock.json'
+            - 'package.json'
+            - '.github/actions/setup-deps/action.yml'
+            - '.github/workflows/ci-cache.yml'
+    workflow_dispatch:
+    schedule:
+        # Caches unused for 7 days are dropped.
+        - cron: '17 4 * * 1'
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-cache-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    warm:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v7
+            - uses: ./.github/actions/setup-deps
+              with:
+                  save: 'true'
+            - name: Cache Playwright browsers
+              uses: actions/cache@v6
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+            - name: Download Chromium
+              run: node_modules/.bin/playwright install chromium
