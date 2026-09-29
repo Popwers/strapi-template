@@ -1,10 +1,8 @@
 name: CI
 
+# Pull requests only: main re-ran the suites the PR had just passed. Client repos generated from this template do the same.
 on:
     pull_request:
-    push:
-        branches:
-            - master
 
 permissions:
     contents: read
@@ -14,23 +12,18 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    # One job: check and unit each spent more time on setup than on work, and every job bills a whole minute.
     check:
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         steps:
             - uses: actions/checkout@v7
             - uses: voidzero-dev/setup-vp@v1.21.1
               with:
                   cache: true
             - run: vp check
-
-    unit:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v7
-            - uses: voidzero-dev/setup-vp@v1.21.1
-              with:
-                  cache: true
             - run: vp test run
+              if: ${{ !cancelled() }}
 
     e2e:
         runs-on: ubuntu-latest
