@@ -14,12 +14,12 @@
     "e2e": "playwright test -c tests/e2e"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1141.0",
-    "@strapi/plugin-sentry": "5.55.1",
-    "@strapi/plugin-users-permissions": "5.55.1",
-    "@strapi/provider-email-nodemailer": "5.55.1",
-    "@strapi/strapi": "5.55.1",
-    "pg": "^8.23.0",
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@strapi/plugin-sentry": "5.56.0",
+    "@strapi/plugin-users-permissions": "5.56.0",
+    "@strapi/provider-email-nodemailer": "5.56.0",
+    "@strapi/strapi": "5.56.0",
+    "pg": "^8.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.6",
@@ -27,7 +27,7 @@
     "styled-components": "^6.5.3"
   },
   "devDependencies": {
-    "@oxlint/plugins": "1.85.0",
+    "@oxlint/plugins": "1.86.0",
     "@playwright/test": "^1.63.0",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",

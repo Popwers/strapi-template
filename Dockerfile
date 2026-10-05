@@ -20,7 +20,7 @@ RUN apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev && \
 
 # --- deps_full: install all deps (incl. devDeps) for build + dev runtime ----
 FROM base_deps AS deps_full
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     npm ci --prefer-offline --no-audit
@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/opt/app/.cache \
 
 # --- deps_prod: prod-only node_modules (parallel to deps_full, same cache) --
 FROM base_deps AS deps_prod
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     --mount=type=cache,target=/root/.cache,sharing=locked \
     npm ci --omit=dev --prefer-offline --no-audit
@@ -45,9 +45,11 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
 # so the Node server never loads these at boot or on any API route (verified:
 # boots healthy, /admin + its 5.6 MB bundle serve, content-manager API resolves).
 # They fall into two buckets, both build-only:
-#   - bundlers / transpilers: @swc, webpack, esbuild-loader, lightningcss, typescript
+#   - bundlers / transpilers: @swc, webpack, esbuild-loader, lightningcss
 #   - admin SPA libs already compiled into dist/build: @formatjs, @reduxjs,
 #     @shikijs, hls.js, @mux, core-js-pure
+# typescript stays: the strapi CLI loads every command at startup, and `build`
+# pulls in @strapi/typescript-utils, so `strapi start` crashes without it.
 # Pruning them trims ~255 MB. Re-validate this list after a Strapi major upgrade.
 RUN rm -rf \
     node_modules/@swc \
@@ -59,7 +61,6 @@ RUN rm -rf \
     node_modules/core-js-pure \
     node_modules/webpack \
     node_modules/esbuild-loader \
-    node_modules/typescript \
     node_modules/lightningcss \
     node_modules/lightningcss-*
 
