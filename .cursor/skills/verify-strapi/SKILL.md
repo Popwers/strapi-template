@@ -109,7 +109,7 @@ Stable handles from this repo:
 
 There are no `data-testid` attributes in this template. Do not use coordinates or tab order. Prefer `/admin/init`, `/_health`, and the redirect `Location` header.
 
-Public `auth.register` and authenticated `user.me` are granted on a fresh Strapi install. `POST /api/users/avatar` and `PUT /api/users/:id` are 403 until an admin enables `user.updateAvatar` and `user.update` on the Authenticated role (`PUT /users-permissions/roles/:id` with the role's existing `permissions` object, those actions `enabled: true`). A 403 before that grant is the fresh-database state, not a missing route. Anonymous avatar upload is also 403 (the permission layer runs before the controller's 401).
+Public `auth.register` and authenticated `user.me` are granted on a fresh Strapi install. `POST /api/users/avatar` and `PUT /api/users/:id` are 403 until an admin enables `user.updateAvatar` and `user.update` on the Authenticated role (`PUT /users-permissions/roles/:id` with the role's existing `permissions` object at the top level of the body, those actions `enabled: true`). A body wrapped as `{ "data": ... }` or `{ "role": ... }` still returns `{"ok":true}` and deletes every existing grant. A 403 before that grant is the fresh-database state, not a missing route. Anonymous avatar upload is also 403 (the permission layer runs before the controller's 401).
 
 ## Evidence
 
