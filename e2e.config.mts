@@ -45,7 +45,7 @@ export default {
 	// SuperGrok subscription: sign in once with `npx e2e login spacexai`; `npx e2e models spacexai` lists the ids.
 	agents: {
 		default: {
-			model: grok('grok-4'),
+			model: grok('grok-4.7'),
 			system: 'You are a thorough QA agent. Verify every outcome on screen.',
 			context:
 				'Strapi 5 admin panel. The Content Manager lists collection types such as "User" (users-permissions). Saving an entry shows a toast notification.',

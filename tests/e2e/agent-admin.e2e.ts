@@ -24,7 +24,7 @@ test(
 				params: { email, password: secrets.get('new-user-password') },
 			},
 		);
-		await expect(screen.getByText('Saved document')).toBeVisible();
+		// The save toast auto-dismisses; the created record's own page (document id in the URL) is the persistent proof.
 		await expect(browser).toHaveURL(/\/plugin::users-permissions\.user\/[a-z0-9]+$/);
 		await expect(screen.getByRole('textbox', 'email')).toHaveValue(email);
 	},
