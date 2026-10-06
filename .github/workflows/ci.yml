@@ -42,7 +42,7 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
             - name: Install Chromium and its system dependencies
-              run: vpx @e2e-dev/web install chromium --with-deps
+              run: vpx e2e-web install chromium --with-deps
             # Deterministic tests only: `agent`-tagged tests need a model login CI does not have.
             - run: vp run test:e2e:ci
             - name: Upload e2e report, junit, artifacts and logs
