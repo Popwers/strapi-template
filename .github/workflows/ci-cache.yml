@@ -38,4 +38,4 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
             - name: Download Chromium
-              run: node_modules/.bin/playwright install chromium
+              run: vpx @e2e-dev/web install chromium

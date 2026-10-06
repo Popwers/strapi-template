@@ -17,8 +17,8 @@ check: ## Run vp check (lint + fmt + typecheck)
 test: ## Run the Vitest suite
 	@vp test
 
-e2e: ## Run the Playwright E2E suite (needs Docker)
-	@vp run e2e
+e2e: ## Run the e2e suite (needs Docker; builds Strapi, throwaway Postgres on :5447, app on :1347)
+	@vp run test:e2e:ci
 
 dev: ## Start Strapi develop (never vp dev)
 	@vp run dev

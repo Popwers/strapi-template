@@ -134,6 +134,14 @@ types/generated/*
 # Vite+ git hooks
 .vite-hooks/
 
-# Playwright
-tests/e2e/test-results
-tests/e2e/playwright-report
+# e2e (`vp run test:e2e`)
+.e2e/artifacts/
+.e2e/cache/
+.e2e/sessions/
+.e2e/report.json
+.e2e/ai-trace.json
+.e2e/junit.xml
+.e2e/summary.md
+.e2e/failures/
+.e2e/logs/
+.e2e/videos/

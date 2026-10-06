@@ -1,37 +1,18 @@
-import { expect, type Page, test } from '@playwright/test';
+// Strapi allows 5 admin logins per 5 minutes per address: the real sign-in happens once in
+// `admin.setup.e2e.ts`, the API login in `roles.ts` twice (setup and `auth.e2e.ts`), this file adds one.
+import { expect } from 'e2e';
 
-import { ADMIN_EMAIL, ADMIN_PASSWORD } from './support';
+import { ADMIN, signIn, test } from './fixtures';
 
-function collectConsoleErrors(page: Page): string[] {
-	const errors: string[] = [];
-	page.on('console', (message) => {
-		if (message.type() === 'error') errors.push(message.text());
-	});
-	page.on('pageerror', (error) => errors.push(error.message));
-	return errors;
-}
+test('the admin login rejects a wrong password', async ({ app, screen, browser }) => {
+	await signIn(app, screen, browser, 'not-the-admin-password');
 
-async function signIn(page: Page, password: string): Promise<void> {
-	await page.goto('/admin');
-	await expect(page).toHaveURL(/\/admin\/auth\/login/);
-	await expect(page.getByRole('heading', { name: 'Welcome to Strapi!' })).toBeVisible();
-	await page.getByRole('textbox', { name: 'Email' }).fill(ADMIN_EMAIL);
-	await page.getByRole('textbox', { name: 'Password' }).fill(password);
-	await page.getByRole('button', { name: 'Login' }).click();
-}
-
-test('an admin signs in and lands on the dashboard', async ({ page }) => {
-	const consoleErrors = collectConsoleErrors(page);
-
-	await signIn(page, ADMIN_PASSWORD);
-
-	await expect(page.getByRole('heading', { name: /Hello E2E/ })).toBeVisible();
-	expect(consoleErrors).toEqual([]);
+	await expect(screen.getByText('Invalid credentials')).toBeVisible();
+	await expect(browser).toHaveURL(/\/admin\/auth\/login/);
 });
 
-test('the admin login rejects a wrong password', async ({ page }) => {
-	await signIn(page, 'not-the-admin-password');
+test('the saved session opens the dashboard', { session: ADMIN }, async ({ app, screen }) => {
+	await app.open('/admin');
 
-	await expect(page.getByText('Invalid credentials')).toBeVisible();
-	await expect(page).toHaveURL(/\/admin\/auth\/login/);
+	await expect(screen.getByRole('heading', /Hello E2E/)).toBeVisible();
 });

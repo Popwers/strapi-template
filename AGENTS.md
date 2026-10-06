@@ -12,7 +12,8 @@ Type `make` for the list.
 | Strapi develop | `make dev` | `vp run dev` → `strapi develop` |
 | Lint + fmt + types | `make check` | `vp check` |
 | Tests | `make test` | `vp test` |
-| E2E (HTTP + admin) | `make e2e` | `vp run e2e` → Playwright, `tests/e2e/` |
+| E2E (HTTP + admin) | `make e2e` | `vp run test:e2e:ci` → e2e without agent tests, `tests/e2e/` |
+| E2E incl. agent test | `vp run test:e2e` | `e2e run`, needs `npx e2e login spacexai` |
 | Admin + server build | `make build` | `vp run build` → `strapi build` |
 | Generate TS types | `vp run gen:types` | `strapi ts:generate-types --debug` |
 | Create missing secrets | `./generate-keys.sh` | fills empty secret vars in `.env` |
@@ -23,7 +24,7 @@ Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` wr
 
 ## E2E
 
-`make e2e` runs Playwright from `tests/e2e/`. Needs Docker and a Chromium (`npx playwright install chromium` once). `start-server.sh` starts a throwaway `postgres:18-alpine` on port 5447, builds Strapi, creates an admin, and serves on port 1347 in production mode. `global-setup.ts` grants the authenticated role `user.update` and `user.updateAvatar` and creates an `admin` type role. The container is removed when the run ends. Override ports with `E2E_PORT` and `E2E_DB_PORT`. Report: `tests/e2e/playwright-report/`.
+Tests run with [e2e](https://e2e.tester.army) from `tests/e2e/*.e2e.ts`, configured in `e2e.config.mts`. `make e2e` (`vp run test:e2e:ci`) skips the `agent` tag. `vp run test:e2e` runs everything. Needs Docker, Node >= 24.8 and a Chromium (`npx @e2e-dev/web install chromium` once). The e2e runner starts `tests/e2e/serve.sh`, which starts a throwaway `postgres:18-alpine` on port 5447, builds Strapi, creates an admin and serves on port 1347 in production mode. Its `EXIT` trap removes the container. Override ports with `E2E_PORT` and `E2E_DB_PORT`. `E2E_REUSE_SERVER=1` attaches to a server already on the port. `admin.setup.e2e.ts` runs first: it grants the authenticated role `user.update` and `user.updateAvatar`, creates an `admin` type role, and saves an admin session. API tests take only `app` and use `fetch` (`support.ts`). `agent-admin.e2e.ts` is the one agent test (admin creates a user in the Content Manager). Strapi rate-limits admin logins to 5 per 5 minutes per address, so a reused server blocks after a few runs. `tests/e2e/` is ESM with its own `tsconfig.json`, excluded from the Strapi build. Report: `.e2e/report.json`, `.e2e/junit.xml`. Agent steps use SuperGrok (`npx e2e login spacexai`). The MCP server `e2e` is registered in `.mcp.json`, `.cursor/mcp.json`, `.grok/config.toml` and `.codex/config.toml`.
 
 ## Docker
 
@@ -48,7 +49,8 @@ database/migrations/    SQL migrations
 public/uploads/         Media
 generate-keys.sh        Secret generator
 tests/                  Vitest
-tests/e2e/              Playwright E2E (real Strapi + throwaway Postgres)
+tests/e2e/              e2e suite (real Strapi + throwaway Postgres)
+e2e.config.mts          e2e config
 vite.config.mts         Lint, fmt, staged, test
 ```
 
