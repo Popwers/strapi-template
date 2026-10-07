@@ -19,6 +19,8 @@
 		"src/admin/",
 		"src/plugins/**",
 		"tools/",
+		"tests/e2e/",
+		"e2e.config.mts",
 		"types/generated/**",
 		"vite.config.mts"
 	]

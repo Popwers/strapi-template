@@ -11,6 +11,8 @@ runs:
     steps:
         - uses: voidzero-dev/setup-vp@v1.21.1
           with:
+              # e2e needs Node >= 24.8; `engines` only asks for 20.9.
+              node-version: '24'
               cache: true
               cache-save: ${{ inputs.save }}
               # Installed below, only when node_modules missed.

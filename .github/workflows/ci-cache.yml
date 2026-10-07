@@ -32,10 +32,10 @@ jobs:
             - uses: ./.github/actions/setup-deps
               with:
                   save: 'true'
-            - name: Cache Playwright browsers
+            - name: Cache e2e browsers
               uses: actions/cache@v6
               with:
                   path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+                  key: e2e-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
             - name: Download Chromium
-              run: node_modules/.bin/playwright install chromium
+              run: vpx e2e-web install chromium

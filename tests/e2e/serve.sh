@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Builds and starts Strapi for the Playwright suite on a throwaway Postgres
-# container. Playwright's webServer runs it and sends SIGTERM when the suite
-# ends. Run it by hand to poke the same stack; Ctrl-C tears everything down.
+# App under test for the e2e suite (`e2e.config.mts` runs it as `app.command`).
+# Starts a throwaway Postgres, builds Strapi, creates the admin and serves in production mode.
+# The runner stops the process group with SIGTERM and SIGKILLs it 10 s later, so the EXIT trap
+# removes the database and kills the server without waiting on it. Run it by hand to poke the
+# same stack; Ctrl-C tears everything down.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -13,13 +15,13 @@ server_pid=""
 
 stop() {
 	if [ -n "$server_pid" ]; then
-		kill "$server_pid" 2>/dev/null || true
-		wait "$server_pid" 2>/dev/null || true
+		kill -KILL "$server_pid" 2>/dev/null || true
 	fi
 	docker rm -f "$db_container" >/dev/null 2>&1 || true
 }
 trap stop EXIT
-trap 'exit 143' TERM INT
+trap 'exit 143' TERM
+trap 'exit 130' INT
 
 docker rm -f "$db_container" >/dev/null 2>&1 || true
 docker run -d --rm --name "$db_container" \

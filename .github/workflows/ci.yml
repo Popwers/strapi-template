@@ -36,20 +36,25 @@ jobs:
             - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-deps
             # Restore only: the browsers are saved by ci-cache.yml on the default branch.
-            - name: Restore Playwright browsers
+            - name: Restore e2e browsers
               uses: actions/cache/restore@v6
               with:
                   path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+                  key: e2e-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
             - name: Install Chromium and its system dependencies
-              run: node_modules/.bin/playwright install --with-deps chromium
-            - run: vp run e2e
-            - name: Upload Playwright report and traces
-              if: failure()
+              run: vpx e2e-web install chromium --with-deps
+            # Deterministic tests only: `agent`-tagged tests need a model login CI does not have.
+            - run: vp run test:e2e:ci
+            - name: Upload e2e report, junit, artifacts and logs
+              if: ${{ !cancelled() }}
               uses: actions/upload-artifact@v7
               with:
-                  name: playwright-report
+                  name: e2e-report
                   path: |
-                      tests/e2e/playwright-report/
-                      tests/e2e/test-results/
+                      .e2e/report.json
+                      .e2e/junit.xml
+                      .e2e/artifacts/
+                      .e2e/logs/
+                  include-hidden-files: true
+                  if-no-files-found: warn
                   retention-days: 14

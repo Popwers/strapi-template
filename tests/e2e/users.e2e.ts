@@ -1,42 +1,48 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from 'e2e';
 
-import { type ApiUser, bearer, registerUser } from './support';
+import { type ApiUser, api, bearer, registerUser, ROLES, sendJson } from './support';
 
-test('owner updates their own profile and cannot block themselves', async ({ request }) => {
-	const owner = await registerUser(request);
+test('owner updates their own profile and cannot block themselves', { session: ROLES }, async ({ app }) => {
+	const owner = await registerUser(app);
 
-	const update = await request.put(`/api/users/${owner.user.id}`, {
-		headers: bearer(owner.jwt),
-		data: { username: `renamed_${owner.user.id}`, blocked: true },
-	});
+	const update = await sendJson(
+		app,
+		'PUT',
+		`/api/users/${owner.user.id}`,
+		{ username: `renamed_${owner.user.id}`, blocked: true },
+		bearer(owner.jwt),
+	);
 
-	expect(update.status()).toBe(200);
+	expect(update.status).toBe(200);
 	const updated: ApiUser = await update.json();
 	expect(updated.username).toBe(`renamed_${owner.user.id}`);
 
-	const me = await request.get('/api/users/me', { headers: bearer(owner.jwt) });
-	expect(me.status()).toBe(200);
+	const me = await api(app, '/api/users/me', { headers: bearer(owner.jwt) });
+	expect(me.status).toBe(200);
 	expect(await me.json()).toMatchObject({ username: `renamed_${owner.user.id}`, blocked: false });
 });
 
-test('a user cannot update another user', async ({ request }) => {
-	const attacker = await registerUser(request);
-	const victim = await registerUser(request);
+test('a user cannot update another user', { session: ROLES }, async ({ app }) => {
+	const attacker = await registerUser(app);
+	const victim = await registerUser(app);
 
-	const update = await request.put(`/api/users/${victim.user.id}`, {
-		headers: bearer(attacker.jwt),
-		data: { username: 'hijacked' },
-	});
+	const update = await sendJson(
+		app,
+		'PUT',
+		`/api/users/${victim.user.id}`,
+		{ username: 'hijacked' },
+		bearer(attacker.jwt),
+	);
 
-	expect(update.status()).toBe(403);
-	const me = await request.get('/api/users/me', { headers: bearer(victim.jwt) });
+	expect(update.status).toBe(403);
+	const me = await api(app, '/api/users/me', { headers: bearer(victim.jwt) });
 	expect(await me.json()).toMatchObject({ username: victim.user.username });
 });
 
-test('an anonymous request cannot update a user', async ({ request }) => {
-	const victim = await registerUser(request);
+test('an anonymous request cannot update a user', { session: ROLES }, async ({ app }) => {
+	const victim = await registerUser(app);
 
-	const update = await request.put(`/api/users/${victim.user.id}`, { data: { username: 'anonymous' } });
+	const update = await sendJson(app, 'PUT', `/api/users/${victim.user.id}`, { username: 'anonymous' });
 
-	expect(update.status()).toBe(403);
+	expect(update.status).toBe(403);
 });
