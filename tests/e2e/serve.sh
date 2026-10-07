@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# App under test for the e2e suite (`e2e.config.ts` runs it as `app.command`).
+# App under test for the e2e suite (`e2e.config.mts` runs it as `app.command`).
 # Starts a throwaway Postgres, builds Strapi, creates the admin and serves in production mode.
 # The runner stops the process group with SIGTERM and SIGKILLs it 10 s later, so the EXIT trap
 # removes the database and kills the server without waiting on it. Run it by hand to poke the

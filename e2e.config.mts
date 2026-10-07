@@ -35,6 +35,7 @@ export default {
 			},
 		},
 	],
+	retries: 0,
 	trace: 'retain-on-failure',
 	credentials: {
 		admin: { username: ADMIN_EMAIL, password: ADMIN_PASSWORD },

@@ -11,6 +11,9 @@ export const BASE_URL = `http://127.0.0.1:${PORT}`;
 export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@e2e.test';
 export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'E2eAdmin-Passw0rd';
 
+/** Session saved by `roles.setup.e2e.ts`: API tests declare it to get the role grants first. */
+export const ROLES = 'roles';
+
 export const USER_PASSWORD = 'E2e-User-Passw0rd';
 
 export const avatarPng = new Blob([readFileSync(new URL('../../favicon.png', import.meta.url))], {

@@ -6,12 +6,13 @@ import {
 	api,
 	bearer,
 	registerUser,
+	ROLES,
 	sendJson,
 	uniqueEmail,
 	USER_PASSWORD,
 } from './support';
 
-test('register ignores role and username sent by the client', async ({ app }) => {
+test('register ignores role and username sent by the client', { session: ROLES }, async ({ app }) => {
 	const target = await registerUser(app);
 	const email = uniqueEmail();
 

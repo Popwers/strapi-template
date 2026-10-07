@@ -1,8 +1,8 @@
 import { expect, test } from 'e2e';
 
-import { type ApiUser, api, bearer, registerUser, sendJson } from './support';
+import { type ApiUser, api, bearer, registerUser, ROLES, sendJson } from './support';
 
-test('owner updates their own profile and cannot block themselves', async ({ app }) => {
+test('owner updates their own profile and cannot block themselves', { session: ROLES }, async ({ app }) => {
 	const owner = await registerUser(app);
 
 	const update = await sendJson(
@@ -22,7 +22,7 @@ test('owner updates their own profile and cannot block themselves', async ({ app
 	expect(await me.json()).toMatchObject({ username: `renamed_${owner.user.id}`, blocked: false });
 });
 
-test('a user cannot update another user', async ({ app }) => {
+test('a user cannot update another user', { session: ROLES }, async ({ app }) => {
 	const attacker = await registerUser(app);
 	const victim = await registerUser(app);
 
@@ -39,7 +39,7 @@ test('a user cannot update another user', async ({ app }) => {
 	expect(await me.json()).toMatchObject({ username: victim.user.username });
 });
 
-test('an anonymous request cannot update a user', async ({ app }) => {
+test('an anonymous request cannot update a user', { session: ROLES }, async ({ app }) => {
 	const victim = await registerUser(app);
 
 	const update = await sendJson(app, 'PUT', `/api/users/${victim.user.id}`, { username: 'anonymous' });
