@@ -14,6 +14,7 @@ PGDATA="$TMP_DIR/pgdata"
 PROOF_DIR="${VERIFY_EVIDENCE_DIR:-$SKILL_DIR/proof}"
 DEFAULT_PORT="${VERIFY_STRAPI_PORT:-1341}"
 DEFAULT_PGPORT="${VERIFY_PGPORT:-5441}"
+HTTP_TIMEOUT="${VERIFY_HTTP_TIMEOUT:-20}"
 PG_USER="strapi_verify"
 PG_DB="strapi_verify"
 PG_PASSWORD="strapi_verify"
@@ -474,7 +475,7 @@ http_request() {
 	dump="$(mktemp)"
 	bodyfile="$(mktemp)"
 	headerfile="$(mktemp)"
-	local curl_args=(-sS -D "$headerfile" -o "$bodyfile" --max-time 20 -X "$method")
+	local curl_args=(-sS -D "$headerfile" -o "$bodyfile" --max-time "$HTTP_TIMEOUT" -X "$method")
 	if [ "$follow" = "0" ]; then
 		curl_args+=(--max-redirs 0)
 	else
