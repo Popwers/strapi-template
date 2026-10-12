@@ -165,7 +165,7 @@ If launch failed halfway, run cleanup anyway. The state file records whatever wa
 
 `--json` on `doctor` and `launch` prints the state object.
 
-Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`), `VERIFY_EXTRA_PATH` (optional, colon-separated directories prepended to `PATH` when a tool such as `vp` lives somewhere non-standard). Proof files record paths relative to the repo (or to `VERIFY_EVIDENCE_DIR` when it lives elsewhere), never an absolute path.
+Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`), `VERIFY_EXTRA_PATH` (optional, colon-separated directories prepended to `PATH` when a tool such as `vp` lives somewhere non-standard), `VERIFY_HTTP_TIMEOUT` (default `20`, seconds per `http` request). On a loaded shared machine, raise `VERIFY_HTTP_TIMEOUT` (for example `600`). A request that times out client-side still runs server-side, so a later mutation in the recipe can land before an earlier one. Proof files record paths relative to the repo (or to `VERIFY_EVIDENCE_DIR` when it lives elsewhere), never an absolute path.
 
 ## Isolation
 
