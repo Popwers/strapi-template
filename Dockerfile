@@ -83,10 +83,8 @@ FROM base AS runtime
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
-# Prod-only node_modules (no TS, no @types, no semantic-release, no vite-plus)
 COPY --from=deps_prod --chown=node:node /opt/app/node_modules ./node_modules
 
-# Compiled output + runtime config + schemas + assets
 COPY --from=builder --chown=node:node /opt/app/dist          ./dist
 COPY --from=builder --chown=node:node /opt/app/config        ./config
 COPY --from=builder --chown=node:node /opt/app/database      ./database

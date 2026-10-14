@@ -13,16 +13,6 @@ export default async (plugin) => {
 
 	const initialAuthController = plugin.controllers.auth({ strapi });
 
-	/**
-	 * -------------------------------------------------------------------------
-	 * ------------------------------ CONTROLLERS ------------------------------
-	 * -------------------------------------------------------------------------
-	 */
-
-	/**
-	 * Add a default role and username to the user on creation
-	 * @param ctx
-	 */
 	plugin.controllers.contentmanageruser.create = async (ctx) => {
 		const createBody = await createUserWriteBody(ctx);
 		if (!createBody) return ctx.badRequest('Default role not found');
@@ -32,10 +22,6 @@ export default async (plugin) => {
 		await contentManagerUserCreateController(ctx);
 	};
 
-	/**
-	 * Add a default role and username to the user on creation
-	 * @param ctx
-	 */
 	plugin.controllers.user.create = async (ctx) => {
 		const createBody = await createUserWriteBody(ctx);
 		if (!createBody) return ctx.badRequest('Default role not found');
@@ -45,10 +31,6 @@ export default async (plugin) => {
 		await createUserController(ctx);
 	};
 
-	/**
-	 * Add a default role and username to the user on creation
-	 * @param ctx
-	 */
 	plugin.controllers.auth = ({ strapi: _strapi }) => {
 		return {
 			...initialAuthController,
@@ -62,9 +44,6 @@ export default async (plugin) => {
 		};
 	};
 
-	/**
-	 * Prevent user to update certain fields by removing them from the request body
-	 */
 	plugin.controllers.contentmanageruser.update = async (ctx) => {
 		const { body } = ctx.request;
 		const sanitizedBody = Object.fromEntries(
@@ -76,9 +55,6 @@ export default async (plugin) => {
 		await contentManagerUserUpdateController(ctx);
 	};
 
-	/**
-	 * Prevent user to update certain fields by removing them from the request body
-	 */
 	plugin.controllers.user.update = async (ctx) => {
 		const { body } = ctx.request;
 		const sanitizedBody = Object.fromEntries(
@@ -90,10 +66,6 @@ export default async (plugin) => {
 		await userUpdateController(ctx);
 	};
 
-	/**
-	 * Update the avatar of the user
-	 * @param ctx
-	 */
 	plugin.controllers.user.updateAvatar = async (ctx) => {
 		const authUser = ctx.state.user;
 
@@ -116,7 +88,6 @@ export default async (plugin) => {
 					return ctx.badRequest('Upload service not found');
 				}
 
-				// Get user data
 				const userData = await strapi.query('plugin::users-permissions.user').findOne({
 					where: { documentId: authUser.documentId },
 					populate: ['avatar'],
@@ -126,7 +97,6 @@ export default async (plugin) => {
 					return ctx.badRequest('User not found');
 				}
 
-				// Remove old avatar if exists
 				if (userData?.avatar?.documentId) {
 					const oldMedia = await strapi.query('plugin::upload.file').findOne({
 						where: { documentId: userData.avatar.documentId },
@@ -141,7 +111,6 @@ export default async (plugin) => {
 					}
 				}
 
-				// Upload new avatar
 				const newMedia = await uploadService.upload({
 					data: {
 						refId: authUser.id,
@@ -166,12 +135,6 @@ export default async (plugin) => {
 	};
 
 	/**
-	 * ----------------------------------------------------------------------
-	 * ------------------------------ POLICIES ------------------------------
-	 * ----------------------------------------------------------------------
-	 */
-
-	/**
 	 * Check if the user is the owner of the targeted user or an admin.
 	 * @param ctx
 	 * @returns boolean - Strapi's policy engine turns a falsy result into a 403,
@@ -186,15 +149,6 @@ export default async (plugin) => {
 		return authUser.role.type === 'admin' || authUser.id === Number.parseInt(id, 10);
 	};
 
-	/**
-	 * --------------------------------------------------------------------
-	 * ------------------------------ ROUTES ------------------------------
-	 * --------------------------------------------------------------------
-	 */
-
-	/**
-	 * Add the route to update the avatar of the user
-	 */
 	plugin.routes['content-api'].routes.push({
 		method: 'POST',
 		path: '/users/avatar',
@@ -204,18 +158,9 @@ export default async (plugin) => {
 		},
 	});
 
-	/**
-	 * Add the policy to the update user route
-	 */
 	plugin.routes['content-api'].routes.find(
 		(route) => route.method === 'PUT' && route.path === '/users/:id',
 	).config.policies = ['isOwnerOrAdmin'];
-
-	/**
-	 * --------------------------------------------------------------------
-	 * ------------------------------ HELPER ------------------------------
-	 * --------------------------------------------------------------------
-	 */
 
 	const newUserWriteBody = (ctx) => ({
 		email: ctx.request.body.email,

@@ -2,7 +2,6 @@
 
 ENV_FILE=".env"
 
-# Generate a single base64 secret.
 generate_secret() {
     openssl rand -base64 16
 }
@@ -12,7 +11,6 @@ generate_app_keys() {
     printf '%s,%s,%s,%s' "$(generate_secret)" "$(generate_secret)" "$(generate_secret)" "$(generate_secret)"
 }
 
-# Write KEY=VALUE into .env, replacing an existing line or appending a new one.
 write_key() {
     KEY_NAME=$1
     NEW_VALUE=$2
@@ -28,7 +26,6 @@ write_key() {
     fi
 }
 
-# Generate a key only if it is missing or empty in .env.
 generate_if_missing() {
     KEY_NAME=$1
 
@@ -55,7 +52,6 @@ generate_if_missing() {
     fi
 }
 
-# Generate keys if missing
 generate_if_missing "APP_KEYS"
 generate_if_missing "API_TOKEN_SALT"
 generate_if_missing "JWT_SECRET"

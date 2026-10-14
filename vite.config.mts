@@ -1,17 +1,5 @@
 import { defineConfig } from 'vite-plus';
 
-/**
- * Default Vite+ config.
- *
- * fmt:    tabs/4/110, LF, single quotes, semis, all-trailing commas, JSX
- *         bracket on same line, arrow parens always, deterministic import
- *         order, Tailwind sorted, package.json sorted.
- * lint:   curated oxlint rule set on top of `recommended`.
- *         anti-slop: https://github.com/dmmulroy/anti-slop
- *         (vendored at tools/oxlint/anti-slop/). This template has no
- *         Tailwind, so @shadcn/lint is not registered.
- * staged: run `vp check --fix` on staged files (install via `vp config`).
- */
 export default defineConfig({
 	fmt: {
 		useTabs: true,
