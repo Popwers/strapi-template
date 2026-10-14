@@ -45,19 +45,7 @@ jobs:
                   # Everything `serve.sh` builds or serves, the suite itself, and what installs or runs it.
                   filters: |
                       e2e:
-                          - 'src/**'
-                          - 'config/**'
-                          - 'database/**'
-                          - 'public/**'
                           - 'tests/e2e/**'
-                          - 'e2e.config.mts'
-                          - 'favicon.png'
-                          - 'tsconfig.json'
-                          - 'package.json'
-                          - 'package-lock.json'
-                          - '.npmrc'
-                          - '.github/actions/**'
-                          - '.github/workflows/ci.yml'
 
     e2e-suite:
         needs: changes
