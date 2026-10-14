@@ -29,20 +29,46 @@ jobs:
             - run: vp test run
               if: ${{ !cancelled() }}
 
-    e2e:
+    # Decides whether the e2e suite has anything to prove. The filter reads the whole PR diff, not the last commit.
+    changes:
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            e2e: ${{ steps.filter.outputs.e2e }}
+        steps:
+            - uses: dorny/paths-filter@v4
+              id: filter
+              with:
+                  # Everything `serve.sh` builds or serves, the suite itself, and what installs or runs it.
+                  filters: |
+                      e2e:
+                          - 'src/**'
+                          - 'config/**'
+                          - 'database/**'
+                          - 'public/**'
+                          - 'tests/e2e/**'
+                          - 'e2e.config.mts'
+                          - 'favicon.png'
+                          - 'tsconfig.json'
+                          - 'package.json'
+                          - 'package-lock.json'
+                          - '.npmrc'
+                          - '.github/actions/**'
+                          - '.github/workflows/ci.yml'
+
+    e2e-suite:
+        needs: changes
+        if: ${{ needs.changes.outputs.e2e == 'true' }}
         runs-on: ubuntu-latest
         timeout-minutes: 20
         steps:
             - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-deps
             # Restore only: the browsers are saved by ci-cache.yml on the default branch.
-            - name: Restore e2e browsers
-              uses: actions/cache/restore@v6
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: e2e-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-            - name: Install Chromium and its system dependencies
-              run: vpx e2e-web install chromium --with-deps
+            - uses: ./.github/actions/e2e-browsers
             # Deterministic tests only: `agent`-tagged tests need a model login CI does not have.
             - run: vp run test:e2e:ci
             - name: Upload e2e report, junit, artifacts and logs
@@ -58,3 +84,22 @@ jobs:
                   include-hidden-files: true
                   if-no-files-found: warn
                   retention-days: 14
+
+    # Keeps the `e2e` check name: green when the suite passed or had nothing to run, red otherwise.
+    e2e:
+        needs: [changes, e2e-suite]
+        if: ${{ always() }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - name: Check the e2e outcome
+              env:
+                  CHANGES: ${{ needs.changes.result }}
+                  WANTED: ${{ needs.changes.outputs.e2e }}
+                  SUITE: ${{ needs.e2e-suite.result }}
+              run: |
+                  echo "changes=$CHANGES e2e-wanted=$WANTED e2e-suite=$SUITE"
+                  if [ "$CHANGES" != success ]; then exit 1; fi
+                  if [ "$SUITE" = success ]; then exit 0; fi
+                  if [ "$SUITE" = skipped ] && [ "$WANTED" != true ]; then exit 0; fi
+                  exit 1
