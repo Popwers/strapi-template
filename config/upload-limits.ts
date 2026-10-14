@@ -6,8 +6,10 @@
  * shared package, so they must be kept in sync by hand.
  */
 
+const MB = 1024 * 1024;
+
 /** Hard per-file upload size cap (bytes). */
-export const UPLOAD_SIZE_LIMIT = 15 * 1024 * 1024; // 15 MB
+export const UPLOAD_SIZE_LIMIT = 15 * MB;
 
 /**
  * MIME types accepted by the upload plugin, validated from file content (not the declared header).
