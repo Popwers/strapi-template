@@ -20,31 +20,12 @@ function requireEnv(name: string): string {
 }
 
 export default {
-	/**
-	 * An asynchronous register function that runs before
-	 * your application is initialized.
-	 *
-	 * This gives you an opportunity to extend code.
-	 */
 	register(_context: { strapi: Core.Strapi }) {},
 
-	/**
-	 * An asynchronous bootstrap function that runs before
-	 * your application gets started.
-	 *
-	 * This gives you an opportunity to set up your data model,
-	 * run jobs, or perform some special logic.
-	 */
 	bootstrap({ strapi }: { strapi: Core.Strapi }) {
-		/**
-		 * Add a cron job to the Strapi instance to backup all data
-		 * The archive will be stored in the R2 storage
-		 * The backup will be done every 3 hours
-		 */
 		strapi.cron.add({
 			backup: {
 				task: async ({ strapi }) => {
-					// Disable on dev mode
 					if (process.env.NODE_ENV === 'development') return;
 
 					const EXPORT_FILE_NAME = `name-of-your-company-strapi-backup-${Date.now()}`;
@@ -52,7 +33,6 @@ export default {
 					const DB_BACKUP_FILE = `${EXPORT_FILE_NAME}-db.sql`;
 
 					try {
-						// Validate environment variables up front, narrowing each to `string`.
 						const S3_ENDPOINT = requireEnv('S3_ENDPOINT');
 						const S3_ACCESS_KEY_ID = requireEnv('S3_ACCESS_KEY_ID');
 						const S3_SECRET_ACCESS_KEY = requireEnv('S3_SECRET_ACCESS_KEY');
@@ -76,7 +56,6 @@ export default {
 
 						strapi.log.info('Starting backup process...');
 
-						// Create PostgreSQL database dump
 						strapi.log.info('Creating database dump...');
 						// execFileSync (no shell) so env values are passed as plain arguments.
 						execFileSync(
@@ -100,7 +79,6 @@ export default {
 							},
 						);
 
-						// Export Strapi data
 						strapi.log.info('Exporting Strapi data...');
 
 						// execFileSync (no shell) so the filename is never interpreted by /bin/sh,
@@ -110,7 +88,6 @@ export default {
 							timeout: 300000,
 						});
 
-						// Upload both files to S3
 						strapi.log.info('Uploading backups to S3...');
 						const strapiBackup = fs.readFileSync(BACKUP_FILE);
 						const dbBackup = fs.readFileSync(DB_BACKUP_FILE);
@@ -139,7 +116,6 @@ export default {
 						strapi.log.error('Backup failed:', error);
 						sendError(strapi, error);
 					} finally {
-						// Cleanup both temporary files
 						try {
 							const filesToCleanup = [BACKUP_FILE, DB_BACKUP_FILE];
 							for (const file of filesToCleanup) {

@@ -33,10 +33,7 @@ export default ({ env }) => ({
 	},
 	upload: {
 		config: {
-			// Hard cap on upload size — single source in ./upload-limits.
 			sizeLimit: UPLOAD_SIZE_LIMIT,
-			// MIME validated from file content (file-type), not the declared header.
-			// SVG/HTML intentionally excluded (XSS risk), executables too. See ./upload-limits.
 			security: {
 				allowedTypes: UPLOAD_ALLOWED_TYPES,
 			},
