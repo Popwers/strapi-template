@@ -29,10 +29,11 @@ runs:
           with:
               path: node_modules
               key: node-modules-${{ runner.os }}-${{ runner.arch }}-${{ steps.node.outputs.version }}-${{ hashFiles('package-lock.json') }}
+        # `--frozen-lockfile` runs `npm ci`: a clean install that fails when package.json and the lockfile disagree.
         - name: Install dependencies
           if: ${{ inputs.save == 'true' || steps.modules.outputs.cache-hit != 'true' }}
           shell: bash
-          run: vp install
+          run: vp install --frozen-lockfile
         - name: Save node_modules
           if: ${{ inputs.save == 'true' }}
           uses: actions/cache/save@v6

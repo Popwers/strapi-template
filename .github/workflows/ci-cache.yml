@@ -10,6 +10,7 @@ on:
             - 'package-lock.json'
             - 'package.json'
             - '.github/actions/setup-deps/action.yml'
+            - '.github/actions/e2e-browsers/action.yml'
             - '.github/workflows/ci-cache.yml'
     workflow_dispatch:
     schedule:
@@ -32,10 +33,6 @@ jobs:
             - uses: ./.github/actions/setup-deps
               with:
                   save: 'true'
-            - name: Cache e2e browsers
-              uses: actions/cache@v6
+            - uses: ./.github/actions/e2e-browsers
               with:
-                  path: ~/.cache/ms-playwright
-                  key: e2e-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-            - name: Download Chromium
-              run: vpx e2e-web install chromium
+                  save: 'true'

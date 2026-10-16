@@ -1,6 +1,11 @@
 name: CI
 
-# Pull requests only: main re-ran the suites the PR had just passed. Client repos generated from this template do the same.
+# Jobs run on a GitHub-hosted runner while the owner has included Actions minutes left, else on the build server.
+# Variables: CI_FORCE_RUNNER (github | build-server, empty = auto), CI_QUOTA_THRESHOLD (remaining %, default 10).
+# Secret: CI_BILLING_TOKEN (reads the billing usage; without it, jobs go to the build server).
+# A public repository always gets GitHub-hosted runners, whose minutes are free.
+
+# No push trigger: main re-ran the suites the PR had just passed. Client repos generated from this template do the same.
 on:
     pull_request:
         # Docs-only PRs skip CI: nothing they touch is built or tested. Re-include any markdown the build reads.
@@ -9,18 +14,45 @@ on:
             - '!**/*.md'
             - '!docs/**'
             - '!LICENSE'
+    # A manual run checks and tests everything, e2e included, on the runner picked here.
+    workflow_dispatch:
+        inputs:
+            runner:
+                description: Where the jobs run
+                type: choice
+                options: [auto, github, build-server]
+                default: auto
 
 permissions:
     contents: read
 
 concurrency:
-    group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    # The event keeps a pull request push from cancelling a manual run of the same branch, and the runner
+    # input keeps manual runs of one branch on different runners from cancelling each other.
+    group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ inputs.runner || 'auto' }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 jobs:
+    pick-runner:
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            contents: read
+        outputs:
+            runner: ${{ steps.pick.outputs.runner }}
+            target: ${{ steps.pick.outputs.target }}
+        steps:
+            - id: pick
+              uses: Popwers/mini-bun/.github/actions/pick-runner@d01e440c7fcdefb32ec5e92c3d3b4704a746dd8f
+              with:
+                  force: ${{ inputs.runner != '' && inputs.runner != 'auto' && inputs.runner || vars.CI_FORCE_RUNNER }}
+                  threshold: ${{ vars.CI_QUOTA_THRESHOLD || '10' }}
+                  token: ${{ secrets.CI_BILLING_TOKEN }}
+
     # One job: check and unit each spent more time on setup than on work, and every job bills a whole minute.
     check:
-        runs-on: ubuntu-latest
+        needs: pick-runner
+        runs-on: ${{ fromJSON(needs.pick-runner.outputs.runner) }}
         timeout-minutes: 15
         steps:
             - uses: actions/checkout@v7
@@ -29,20 +61,51 @@ jobs:
             - run: vp test run
               if: ${{ !cancelled() }}
 
-    e2e:
-        runs-on: ubuntu-latest
+    # Decides whether the e2e suite has anything to prove. The filter reads the whole PR diff, not the last commit.
+    # A manual run has no pull request to diff against: it always runs the suite.
+    changes:
+        needs: pick-runner
+        runs-on: ${{ fromJSON(needs.pick-runner.outputs.runner) }}
+        timeout-minutes: 5
+        permissions:
+            contents: read
+            pull-requests: read
+        outputs:
+            e2e: ${{ github.event_name != 'pull_request' || steps.filter.outputs.e2e }}
+        steps:
+            - uses: dorny/paths-filter@v4
+              if: github.event_name == 'pull_request'
+              id: filter
+              with:
+                  # Everything `serve.sh` builds or serves, the suite itself, and what installs or runs it.
+                  filters: |
+                      e2e:
+                          - 'src/**'
+                          - 'config/**'
+                          - 'database/**'
+                          - 'public/**'
+                          - 'tests/e2e/**'
+                          - 'e2e.config.mts'
+                          - 'favicon.png'
+                          - 'tsconfig.json'
+                          - 'package.json'
+                          - 'package-lock.json'
+                          - '.npmrc'
+                          - '.github/actions/**'
+                          - '.github/workflows/ci.yml'
+
+    # Docker (throwaway Postgres) and Chromium's system libraries work on both GitHub-hosted runners and the build server.
+    e2e-suite:
+        needs: [pick-runner, changes]
+        if: ${{ needs.changes.outputs.e2e == 'true' }}
+        runs-on: ${{ fromJSON(needs.pick-runner.outputs.runner) }}
         timeout-minutes: 20
         steps:
             - uses: actions/checkout@v7
             - uses: ./.github/actions/setup-deps
-            # Restore only: the browsers are saved by ci-cache.yml on the default branch.
-            - name: Restore e2e browsers
-              uses: actions/cache/restore@v6
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: e2e-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-            - name: Install Chromium and its system dependencies
-              run: vpx e2e-web install chromium --with-deps
+            # Restore only: the browsers are saved by ci-cache.yml on the default branch, for GitHub-hosted X64 keys.
+            # The build server misses that cache and keeps its own ~/.cache/ms-playwright between runs.
+            - uses: ./.github/actions/e2e-browsers
             # Deterministic tests only: `agent`-tagged tests need a model login CI does not have.
             - run: vp run test:e2e:ci
             - name: Upload e2e report, junit, artifacts and logs
@@ -58,3 +121,23 @@ jobs:
                   include-hidden-files: true
                   if-no-files-found: warn
                   retention-days: 14
+
+    # Keeps the `e2e` check name: green when the suite passed or had nothing to run, red otherwise.
+    # A failed pick-runner leaves no runner: this gate then takes a GitHub-hosted one and reports red.
+    e2e:
+        needs: [pick-runner, changes, e2e-suite]
+        if: ${{ always() }}
+        runs-on: ${{ fromJSON(needs.pick-runner.outputs.runner || '"ubuntu-latest"') }}
+        timeout-minutes: 5
+        steps:
+            - name: Check the e2e outcome
+              env:
+                  CHANGES: ${{ needs.changes.result }}
+                  WANTED: ${{ needs.changes.outputs.e2e }}
+                  SUITE: ${{ needs.e2e-suite.result }}
+              run: |
+                  echo "changes=$CHANGES e2e-wanted=$WANTED e2e-suite=$SUITE"
+                  if [ "$CHANGES" != success ]; then exit 1; fi
+                  if [ "$SUITE" = success ]; then exit 0; fi
+                  if [ "$SUITE" = skipped ] && [ "$WANTED" != true ]; then exit 0; fi
+                  exit 1
