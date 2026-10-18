@@ -8,10 +8,12 @@ Type `make` for the list.
 
 | Need | Command | What it runs |
 | --- | --- | --- |
-| Install + hooks | `make install` | `vp i` then `vp config` |
+| Install + hooks | `make install` | `vp i` then `make hooks` |
+| Git hooks only | `make hooks` | `vp config` |
 | Strapi develop | `make dev` | `vp run dev` → `strapi develop` |
 | Lint + fmt + types | `make check` | `vp check` |
 | Tests | `make test` | `vp test` |
+| Pre-push checks | `make verify` | `vp check` then `vp test run` |
 | E2E (HTTP + admin) | `make e2e` | `vp run test:e2e:ci` → e2e without agent tests, `tests/e2e/` |
 | E2E incl. agent test | `vp run test:e2e` | `e2e run`, needs `npx e2e login spacexai` |
 | Admin + server build | `make build` | `vp run build` → `strapi build` |
@@ -20,23 +22,17 @@ Type `make` for the list.
 
 API: `http://localhost:1337`. Admin: `http://localhost:1337/admin`.
 
-Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` writes hooks into `.vite-hooks/`. Staged check is `vp check --fix`.
+Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` points Git at `.vite-hooks/`. Commit runs `vp staged` (`vp check --fix`). Push runs `.vite-hooks/pre-push` (see Checks).
 
 ## E2E
 
 Tests run with [e2e](https://e2e.tester.army) from `tests/e2e/*.e2e.ts`, configured in `e2e.config.mts`. `make e2e` (`vp run test:e2e:ci`) skips the `agent` tag. `vp run test:e2e` runs everything. Needs Docker, Node >= 24.8 and a Chromium (`npx @e2e-dev/web install chromium` once). The e2e runner starts `tests/e2e/serve.sh`, which starts a throwaway `postgres:18-alpine` on port 5447, builds Strapi, creates an admin and serves on port 1347 in production mode. Its `EXIT` trap removes the container. Override ports with `E2E_PORT` and `E2E_DB_PORT`. `E2E_REUSE_SERVER=1` attaches to a server already on the port. `roles.setup.e2e.ts` grants the authenticated role `user.update` and `user.updateAvatar` and creates an `admin` type role: API tests take only `app`, use `fetch` (`support.ts`) and declare `{ session: ROLES }` so it runs first, even for a single file. `admin.setup.e2e.ts` saves the admin session. Browser tests import `test` from `fixtures.ts`, whose guard fails them on any `console.error`, uncaught error, failed same-origin asset or 4xx/5xx response, or CSP violation recorded by `page-errors.js` (push a pattern into `allowedPageErrors` to expect one). `agent-admin.e2e.ts` is the one agent test (admin creates a user in the Content Manager). Strapi rate-limits admin logins to 5 per 5 minutes per address, so a reused server blocks after a few runs. `tests/e2e/` is ESM with its own `tsconfig.json`, excluded from the Strapi build. Report: `.e2e/report.json`, `.e2e/junit.xml`. Agent steps use SuperGrok (`npx e2e login spacexai`). The MCP server `e2e` is registered globally by the agent harness (`e2e-mcp`), not in this repo.
 
-## CI
+## Checks
 
-`.github/workflows/ci.yml` runs on pull requests and on manual runs (Actions → CI → Run workflow, input `runner`: `auto`, `github`, `build-server`). A manual run always runs the e2e suite. The `pick-runner` job (shared action `Popwers/mini-bun/.github/actions/pick-runner`, pinned by SHA) picks where the other jobs run: `ubuntu-latest` while at least `CI_QUOTA_THRESHOLD` % (default 10) of the included Actions minutes remain, else the build server (`[self-hosted, ARM64]`). This repository is public, so `auto` always picks GitHub-hosted runners.
+There is no CI workflow. Checks run on your machine in the `pre-push` hook (`.vite-hooks/pre-push`): `make verify`, then `make e2e` when the pushed commits touch what the e2e suite builds or runs (`src/`, `config/`, `database/`, `public/`, `tests/e2e/`, `e2e.config.mts`, `favicon.png`, `tsconfig.json`, `package.json`, `package-lock.json`, `.npmrc`). A push that only touches docs, markdown or editor config skips the gate. Hooks install with `make install` or `make hooks`. `git push --no-verify` bypasses the gate once. Projects started from this template inherit the hook.
 
-| Name | Kind | Role |
-| --- | --- | --- |
-| `CI_FORCE_RUNNER` | variable | `github` or `build-server` skips the quota check. Empty means auto. |
-| `CI_QUOTA_THRESHOLD` | variable | Remaining-minutes percentage under which jobs move to the build server. |
-| `CI_BILLING_TOKEN` | secret | Fine-grained token that reads billing usage. User owner: account permission **Plan: Read-only**. Organization owner: organization permission **Administration: Read-only**, created by an owner or billing manager. Missing or failing, private repos fall back to the build server with a warning. |
-
-`ci-cache.yml` warms the `node_modules` and Chromium caches on `master` for GitHub-hosted X64 runners. The build server misses those keys, installs with `npm ci` and keeps `~/.cache/ms-playwright` between runs.
+`.github/workflows/versionning.yml` is the only workflow: semantic-release on `master`, on `ubuntu-latest`.
 
 ## Docker
 
