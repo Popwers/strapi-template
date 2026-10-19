@@ -4,6 +4,7 @@
   "version": "1.0.1",
   "description": "Strapi CMS",
   "scripts": {
+    "prepare": "vp config --no-agent || true",
     "dev": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",

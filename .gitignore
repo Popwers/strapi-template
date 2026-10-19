@@ -96,9 +96,6 @@ build
 .strapi-cloud.json
 types/generated/*
 
-# Vite+ git hooks
-.vite-hooks/
-
 # e2e (`vp run test:e2e`)
 .e2e/artifacts/
 .e2e/cache/
