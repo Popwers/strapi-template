@@ -103,7 +103,7 @@ describe('isKnownVisitorNoise', () => {
 });
 
 describe('isKnownNoise', () => {
-	const request = { url: 'https://cms.example.com/api/biens', method: 'POST' };
+	const request = { url: 'https://cms.example.com/api/articles', method: 'POST' };
 
 	test('drops each family', () => {
 		expect(isKnownNoise('ForbiddenError', 'Forbidden', {})).toBe(true);
