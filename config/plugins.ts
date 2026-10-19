@@ -1,3 +1,4 @@
+import { isKnownNoise } from '../src/sentry-noise';
 import { LOCAL_UPLOAD_STATIC_OPTIONS } from './asset-cache';
 import { UPLOAD_ALLOWED_TYPES, UPLOAD_SIZE_LIMIT } from './upload-limits';
 
@@ -52,25 +53,16 @@ export default ({ env }) => ({
 				// Tag each event with the deployed commit so an error maps back to the
 				// release that introduced it (SOURCE_COMMIT is set by Coolify at runtime).
 				release: env('SENTRY_RELEASE', env('SOURCE_COMMIT')),
-				// Drop expected client errors before they reach Sentry — failed logins,
-				// permission denials and rate limits are user/4xx noise, not server bugs.
+				// Drop the answers Strapi gives a visitor (refusals, 400s, failed logins, path
+				// traversals) before they reach Sentry. The rules are exact matches, tested in
+				// `tests/sentry-noise.test.ts`.
 				beforeSend: (event, hint) => {
 					const original = hint?.originalException;
 					const error = original instanceof Error ? original : undefined;
-					const name = error?.name ?? event.exception?.values?.[0]?.type;
-					const NOISE = ['UnauthorizedError', 'ForbiddenError', 'RateLimitError', 'PolicyError'];
-					if (name && NOISE.includes(name)) return null;
-					// Auth ValidationErrors (failed login, expired/invalid email-confirmation
-					// token) are user noise; keep other ValidationErrors (real bugs).
-					if (name === 'ValidationError') {
-						const message = error?.message ?? event.exception?.values?.[0]?.value ?? '';
-						if (
-							/invalid identifier or password|invalid credentials|invalid token/i.test(message)
-						) {
-							return null;
-						}
-					}
-					return event;
+					const exception = event.exception?.values?.[0];
+					const name = error?.name ?? exception?.type;
+					const message = error?.message ?? exception?.value;
+					return isKnownNoise(name, message, event) ? null : event;
 				},
 			},
 		},

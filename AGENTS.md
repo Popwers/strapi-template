@@ -53,6 +53,7 @@ src/extensions/users-permissions/   Custom user create/update
 src/middlewares/admin-redirect.ts   `/` and `/index.html` → `/admin`
 src/index.ts            Bootstrap. Starts the backup cron
 src/sentry.ts           Sentry helper
+src/sentry-noise.ts     Pure predicates behind the Sentry `beforeSend` filter
 database/migrations/    SQL migrations
 public/uploads/         Media
 generate-keys.sh        Secret generator
@@ -86,7 +87,7 @@ A cron (default every 6 hours, `CRON_SCHEDULE`) runs `pg_dump`, exports Strapi d
 
 ### Sentry
 
-`@strapi/plugin-sentry` (`config/plugins.ts`) runs in production when `SENTRY_DSN` is set. Events carry `SENTRY_RELEASE`, falling back to `SOURCE_COMMIT`. `src/sentry.ts` forwards caught errors to it.
+`@strapi/plugin-sentry` (`config/plugins.ts`) runs in production when `SENTRY_DSN` is set. Events carry `SENTRY_RELEASE`, falling back to `SOURCE_COMMIT`. `src/sentry.ts` forwards caught errors to it. Its `beforeSend` drops the answers Strapi gives a visitor, with exact matches from `src/sentry-noise.ts`: the refusal classes (`UnauthorizedError`, `ForbiddenError`, `RateLimitError`, `PolicyError`), any `ValidationError` raised out of a request (the plugin attaches `event.request`; `sendError` from the backup cron or a service has none, so it still reports), and a short list of exact `ApplicationError` and `BadRequestError` messages (blocked account, taken email, `Invalid credentials`, `Already confirmed`, `Malicious Path`). Never match by substring. When adding a filter, add the noise sample and a real bug close to its text in `tests/sentry-noise.test.ts`, which runs the real plugin on Koa with the config's `beforeSend`.
 
 ### REST defaults (`config/api.ts`)
 
