@@ -30,7 +30,7 @@ Tests run with [e2e](https://e2e.tester.army) from `tests/e2e/*.e2e.ts`, configu
 
 ## Checks
 
-There is no CI workflow. Checks run on your machine in the `pre-push` hook (`.vite-hooks/pre-push`): `make verify`, then `make e2e` when the pushed commits touch what the e2e suite builds or runs (`src/`, `config/`, `database/`, `public/`, `tests/e2e/`, `e2e.config.mts`, `favicon.png`, `tsconfig.json`, `package.json`, `package-lock.json`, `.npmrc`). A push that only touches docs, markdown or editor config skips the gate. Hooks install with `make install` or `make hooks`. `git push --no-verify` bypasses the gate once. Projects started from this template inherit the hook.
+There is no CI workflow. Checks run on your machine in the `pre-push` hook (`.vite-hooks/pre-push`): `make verify`, then `make e2e` when the pushed commits touch what the e2e suite builds or runs (`src/`, `config/`, `database/`, `public/`, `tests/e2e/`, `e2e.config.mts`, `favicon.png`, `tsconfig.json`, `package.json`, `package-lock.json`, `.npmrc`). A push that only touches docs, markdown or editor config skips the gate. Hooks install themselves with the dependencies (`prepare` runs `vp config`); `make hooks` reinstalls them. `git push --no-verify` bypasses the gate once. Projects started from this template inherit the hook.
 
 `.github/workflows/versionning.yml` is the only workflow: semantic-release on `master`, on `ubuntu-latest`.
 

@@ -107,6 +107,6 @@ The API is at `http://localhost:1337`. The admin panel is at `http://localhost:1
 | Dev server | `make dev` |
 | Production build | `make build` |
 
-There is no CI workflow. Checks run locally in the `pre-push` hook: `make verify`, then the e2e suite when app code changed. Hooks install with `make install` or `make hooks`.
+There is no CI workflow. Checks run locally in the `pre-push` hook: `make verify`, then the e2e suite when app code changed. Hooks install themselves with the dependencies (`prepare` runs `vp config`); `make hooks` reinstalls them.
 
 Lint, format, and typecheck are Vite+ (`vite-plus`), configured in `vite.config.mts`. anti-slop is vendored from https://github.com/dmmulroy/anti-slop. This template has no Tailwind, so it does not use `@shadcn/lint` or `cn`.
