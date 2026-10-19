@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/Popwers/strapi-template/compare/v1.0.1...v1.0.2) (2026-10-19)
+
+
+### Bug Fixes
+
+* **sentry:** tighten the beforeSend noise filters ([#28](https://github.com/Popwers/strapi-template/issues/28)) ([a23f20d](https://github.com/Popwers/strapi-template/commit/a23f20d1900b40d9ce5258d91356e57b13b0b118))
+
 ## [1.0.1](https://github.com/Popwers/strapi-template/compare/v1.0.0...v1.0.1) (2026-09-28)
 
 
