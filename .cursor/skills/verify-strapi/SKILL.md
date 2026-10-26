@@ -135,7 +135,7 @@ Standards:
 - A 200 on `/admin` is not enough for `root-redirect`. Assert the unfollowed `GET /` 302 and `Location: /admin`.
 - A 204 on `/_health` is doctor, not a mapped feature.
 - Do not POST register-admin or users-register against a shared or production CMS.
-- Chrome screenshots must show the page identity (Strapi welcome / login chrome). The browser is `VERIFY_CHROME` when set, else the newest `chrome-headless-shell` the e2e suite installs (`npx @e2e-dev/web install chromium`, under `~/.cache/ms-playwright` or `PLAYWRIGHT_BROWSERS_PATH`), else `/usr/bin/google-chrome` or `google-chrome`. Some system Chrome builds hang in headless mode without writing the PNG, even on a blank page. `verify-strapi screenshot` gives Chrome 40 seconds and fails on an empty file. `drive root-redirect` still writes `manifest.json` with `admin.png captured` failed.
+- Chrome screenshots must show the page identity (Strapi welcome / login chrome). The browser is `VERIFY_CHROME` when set, else the newest `chrome-headless-shell` the e2e suite installs (`npx @e2e-dev/web install chromium`, under `PLAYWRIGHT_BROWSERS_PATH`, else `~/Library/Caches/ms-playwright` on macOS and `~/.cache/ms-playwright` on Linux), else `/usr/bin/google-chrome` or `google-chrome`. Some system Chrome builds hang in headless mode without writing the PNG, even on a blank page. `verify-strapi screenshot` gives Chrome 40 seconds and fails on an empty file. `drive root-redirect` still writes `manifest.json` with `admin.png captured` failed.
 
 The first committed proof lives at `proof/root-redirect/`. Later runs may overwrite that folder only when re-proving the same feature.
 

@@ -588,8 +588,11 @@ chrome_bin() {
 	fi
 	# The Chromium the e2e suite installs (`npx @e2e-dev/web install chromium`). Some system Chrome
 	# builds hang in headless mode without writing the PNG.
-	local shell
-	shell="$(ls -d "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell 2>/dev/null | sort -V | tail -n1 || true)"
+	local cache="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}" shell
+	if [ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] && [ "$(uname -s)" = Darwin ]; then
+		cache="$HOME/Library/Caches/ms-playwright"
+	fi
+	shell="$(ls -d "$cache"/chromium_headless_shell-*/chrome-headless-shell-{linux64,mac-arm64,mac-x64}/chrome-headless-shell 2>/dev/null | sort -V | tail -n1 || true)"
 	if [ -n "$shell" ] && [ -x "$shell" ]; then
 		printf '%s\n' "$shell"
 		return 0
@@ -599,6 +602,15 @@ chrome_bin() {
 		return 0
 	fi
 	command -v google-chrome 2>/dev/null || return 1
+}
+
+# macOS ships no `timeout`; perl's alarm kills the exec'd command the same way.
+with_timeout() {
+	if command -v timeout >/dev/null 2>&1; then
+		timeout "$@"
+		return
+	fi
+	perl -e 'alarm shift; exec @ARGV or die "exec $ARGV[0]: $!\n"' "$@"
 }
 
 cmd_screenshot() {
@@ -636,7 +648,7 @@ cmd_screenshot() {
 	local profile
 	profile="$(mktemp -d "$TMP_DIR/chrome.XXXXXX")"
 	set +e
-	timeout 40 "$chrome" --headless=new --disable-gpu --no-sandbox --window-size=1280,800 \
+	with_timeout 40 "$chrome" --headless=new --disable-gpu --no-sandbox --window-size=1280,800 \
 		--virtual-time-budget=15000 --run-all-compositor-stages-before-draw \
 		--user-data-dir="$profile" --screenshot="$path" "$target" >/dev/null 2>&1
 	local rc=$?
