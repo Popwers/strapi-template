@@ -31,7 +31,6 @@
   "devDependencies": {
     "@ai-sdk/xai": "^5.0.30",
     "@e2e-dev/web": "^0.15.3",
-    "@oxlint/plugins": "1.89.0",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
     "@types/bun": "^1.4.4",
@@ -48,7 +47,7 @@
     "name": "Lionel Bataille"
   },
   "engines": {
-    "node": ">=20.9.0",
+    "node": ">=22.18.0",
     "npm": ">=6.0.0"
   },
   "strapi": {
