@@ -23,7 +23,7 @@ What launch does:
 
 1. Writes `/tmp/verify-strapi/state` and `run.env` (generated `APP_KEYS` / salts / JWT secrets, never committed, never printed).
 2. Puts Postgres 18 binaries on `PATH` (`~/.local/opt/postgresql-*/bin` or `/usr/lib/postgresql/*/bin`).
-3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). The lockfile installs `@types/bun`. If that directory is still missing, launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory only when the marker is present. It does not change `package.json` or `package-lock.json`.
+3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). Its `prepare` script runs `vp config`, which points the clone's Git hooks at `.vite-hooks/` like `make install` does. The lockfile installs `@types/bun`. If that directory is still missing, launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory only when the marker is present. It does not change `package.json` or `package-lock.json`.
 4. Starts a **native** Postgres on `VERIFY_PGPORT` (default `5441`) with user/db `strapi_verify` / `strapi_verify` in `/tmp/verify-strapi/pgdata`. Does not use `docker compose` (compose pins container names `strapi-cms` / `strapi-cms-db` and host ports `1337` / `5432`).
 5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` (agent or CI shells may inject another stack's values). Exports disposable env only — **does not write repo `.env`**.
 6. Starts `vp run dev` (falls back to `npm run dev`) which runs `strapi develop` from the repo root with `HOST=127.0.0.1`, `PORT=<http>`, `PUBLIC_URL=http://127.0.0.1:<http>`, `NODE_ENV=development`. Do not use `node --run dev` on Node 20 — that flag needs Node 22+. Backup cron in `src/index.ts` returns immediately in development; dummy `S3_*` values are never used.
@@ -135,7 +135,7 @@ Standards:
 - A 200 on `/admin` is not enough for `root-redirect`. Assert the unfollowed `GET /` 302 and `Location: /admin`.
 - A 204 on `/_health` is doctor, not a mapped feature.
 - Do not POST register-admin or users-register against a shared or production CMS.
-- Chrome screenshots must show the page identity (Strapi welcome / login chrome). Headless Chrome is `/usr/bin/google-chrome` or `google-chrome` when present. Chrome often writes the PNG and then hangs; `verify-strapi screenshot` treats a non-empty file as success and kills the process.
+- Chrome screenshots must show the page identity (Strapi welcome / login chrome). The browser is `VERIFY_CHROME` when set, else the newest `chrome-headless-shell` the e2e suite installs (`npx @e2e-dev/web install chromium`, under `PLAYWRIGHT_BROWSERS_PATH`, else `~/Library/Caches/ms-playwright` on macOS and `~/.cache/ms-playwright` on Linux), else `/usr/bin/google-chrome` or `google-chrome`. Some system Chrome builds hang in headless mode without writing the PNG, even on a blank page. `verify-strapi screenshot` gives Chrome 40 seconds and fails on an empty file. `drive root-redirect` still writes `manifest.json` with `admin.png captured` failed.
 
 The first committed proof lives at `proof/root-redirect/`. Later runs may overwrite that folder only when re-proving the same feature.
 
@@ -165,7 +165,7 @@ If launch failed halfway, run cleanup anyway. The state file records whatever wa
 
 `--json` on `doctor` and `launch` prints the state object.
 
-Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`), `VERIFY_EXTRA_PATH` (optional, colon-separated directories prepended to `PATH` when a tool such as `vp` lives somewhere non-standard), `VERIFY_HTTP_TIMEOUT` (default `20`, seconds per `http` request). On a loaded shared machine, raise `VERIFY_HTTP_TIMEOUT` (for example `600`). A request that times out client-side still runs server-side, so a later mutation in the recipe can land before an earlier one. Proof files record paths relative to the repo (or to `VERIFY_EVIDENCE_DIR` when it lives elsewhere), never an absolute path.
+Env the helper reads: `VERIFY_STRAPI_PORT` (default `1341`), `VERIFY_PGPORT` (default `5441`), `VERIFY_STRAPI_TMP` (default `/tmp/verify-strapi`), `VERIFY_EVIDENCE_DIR` (default `<skill>/proof`), `VERIFY_EXTRA_PATH` (optional, colon-separated directories prepended to `PATH` when a tool such as `vp` lives somewhere non-standard), `VERIFY_HTTP_TIMEOUT` (default `20`, seconds per `http` request), `VERIFY_CHROME` (optional, headless browser binary for `screenshot`). On a loaded shared machine, raise `VERIFY_HTTP_TIMEOUT` (for example `600`). A request that times out client-side still runs server-side, so a later mutation in the recipe can land before an earlier one. Proof files record paths relative to the repo (or to `VERIFY_EVIDENCE_DIR` when it lives elsewhere), never an absolute path.
 
 ## Isolation
 
