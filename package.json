@@ -42,7 +42,7 @@
     "e2e": "^0.21.3",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
-    "vite-plus": "^0.3.3"
+    "vite-plus": "^1.4.0"
   },
   "author": {
     "name": "Lionel Bataille"
