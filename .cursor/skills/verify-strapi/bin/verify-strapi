@@ -57,6 +57,7 @@ Env:
   VERIFY_PGPORT             default 5441
   VERIFY_STRAPI_TMP         default /tmp/verify-strapi
   VERIFY_EVIDENCE_DIR       default <skill>/proof
+  VERIFY_CHROME             headless browser binary (default: e2e Chromium, then google-chrome)
 EOF
 }
 
@@ -580,6 +581,19 @@ cmd_http() {
 }
 
 chrome_bin() {
+	if [ -n "${VERIFY_CHROME:-}" ]; then
+		[ -x "$VERIFY_CHROME" ] || return 1
+		printf '%s\n' "$VERIFY_CHROME"
+		return 0
+	fi
+	# The Chromium the e2e suite installs (`npx @e2e-dev/web install chromium`). Some system Chrome
+	# builds hang in headless mode without writing the PNG.
+	local shell
+	shell="$(ls -d "${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell 2>/dev/null | sort -V | tail -n1 || true)"
+	if [ -n "$shell" ] && [ -x "$shell" ]; then
+		printf '%s\n' "$shell"
+		return 0
+	fi
 	if [ -x /usr/bin/google-chrome ]; then
 		printf '%s\n' /usr/bin/google-chrome
 		return 0
@@ -662,10 +676,13 @@ excerpt = admin[:4000]
 (dest / "admin.excerpt.txt").write_text(excerpt)
 PY
 
+	rm -f "$dest/admin.png"
 	if chrome_bin >/dev/null 2>&1; then
-		cmd_screenshot --path "$dest/admin.png" --url /admin >"$dest/screenshot.meta.txt" || true
+		# Subshell: `die` exits, and a failed screenshot must still leave a manifest.
+		(cmd_screenshot --path "$dest/admin.png" --url /admin >"$dest/screenshot.meta.txt") ||
+			printf 'screenshot=failed\n' >"$dest/screenshot.meta.txt"
 	else
-		printf 'screenshot=skipped (no google-chrome)\n' >"$dest/screenshot.meta.txt"
+		printf 'screenshot=skipped (no chrome)\n' >"$dest/screenshot.meta.txt"
 	fi
 
 	python3 - "$dest" "$(origin)" <<'PY'
