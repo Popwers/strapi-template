@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 
 # --- base: lean runtime image (alpine + node + libvips + postgres client) ---
 FROM node:lts-alpine AS base
@@ -75,7 +75,7 @@ COPY --from=deps_full /opt/app/node_modules ./node_modules
 COPY . .
 
 HEALTHCHECK NONE
-CMD ["node", "--run", "dev"]
+CMD ["./node_modules/.bin/strapi", "develop"]
 
 # --- runtime: lean prod image — only what Strapi needs to run ---------------
 # Kept last on purpose: builds without `--target` default here.
@@ -103,4 +103,6 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl --fail --silent --output /dev/null "http://127.0.0.1:${PORT:-1337}/_health" || exit 1
 
-CMD ["node", "--run", "start"]
+# The strapi binary is PID 1 (no npm or `node --run` launcher in between), so `docker stop`
+# delivers SIGTERM to Strapi, which closes the server and the database pool before exiting.
+CMD ["./node_modules/.bin/strapi", "start"]
