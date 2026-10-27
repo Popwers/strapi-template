@@ -10,7 +10,7 @@ function isMiddlewareName(entry: MiddlewareEntry): entry is string {
 
 const middlewareKey = (entry: MiddlewareEntry): string => {
 	if (isMiddlewareName(entry)) return entry;
-	return entry.resolve;
+	return 'resolve' in entry ? entry.resolve : entry.name;
 };
 
 describe('middleware stack order', () => {

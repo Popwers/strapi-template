@@ -1,6 +1,7 @@
 import { isKnownNoise } from '../src/sentry-noise';
 import { LOCAL_UPLOAD_STATIC_OPTIONS } from './asset-cache';
 import { UPLOAD_ALLOWED_TYPES, UPLOAD_SIZE_LIMIT } from './upload-limits';
+import { r2ProviderOptions, UPLOAD_STORAGE } from './upload-storage';
 
 export default ({ env }) => ({
 	'users-permissions': {
@@ -38,9 +39,10 @@ export default ({ env }) => ({
 			security: {
 				allowedTypes: UPLOAD_ALLOWED_TYPES,
 			},
-			providerOptions: {
-				localServer: LOCAL_UPLOAD_STATIC_OPTIONS,
-			},
+			// R2 when S3_UPLOAD_BUCKET is set, the local disk otherwise (see `upload-storage.ts`).
+			...(UPLOAD_STORAGE.kind === 'r2'
+				? { provider: 'aws-s3', providerOptions: r2ProviderOptions(UPLOAD_STORAGE) }
+				: { providerOptions: { localServer: LOCAL_UPLOAD_STATIC_OPTIONS } }),
 		},
 	},
 	sentry: {

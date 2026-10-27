@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Core } from '@strapi/strapi';
 
+import { assertDurableUploadStorage } from '../config/upload-storage';
 import sendError from './sentry';
 
 /**
@@ -20,7 +21,9 @@ function requireEnv(name: string): string {
 }
 
 export default {
-	register(_context: { strapi: Core.Strapi }) {},
+	register(_context: { strapi: Core.Strapi }) {
+		assertDurableUploadStorage();
+	},
 
 	bootstrap({ strapi }: { strapi: Core.Strapi }) {
 		strapi.cron.add({

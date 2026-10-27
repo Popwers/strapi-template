@@ -1,6 +1,6 @@
 # Strapi template
 
-Strapi 5 CMS template on PostgreSQL. Email via Nodemailer. Backups to Cloudflare R2. Sentry in production. The lockfile is `package-lock.json`, so `vp` delegates to npm. There is no Tailwind. Never run `vp dev` or `vp build`. Those start the Vite+ app pipeline. `dev` and `build` stay `strapi develop` and `strapi build`.
+Strapi 5 CMS template on PostgreSQL. Email via Nodemailer. Media and backups on Cloudflare R2 (EU jurisdiction). Sentry in production. The lockfile is `package-lock.json`, so `vp` delegates to npm. There is no Tailwind. Never run `vp dev` or `vp build`. Those start the Vite+ app pipeline. `dev` and `build` stay `strapi develop` and `strapi build`.
 
 ## Commands
 
@@ -55,7 +55,7 @@ src/index.ts            Bootstrap. Starts the backup cron
 src/sentry.ts           Sentry helper
 src/sentry-noise.ts     Pure predicates behind the Sentry `beforeSend` filter
 database/migrations/    SQL migrations
-public/uploads/         Media
+public/uploads/         Media on local storage (dev, e2e, docker compose)
 generate-keys.sh        Secret generator
 tests/                  Vitest
 tests/e2e/              e2e suite (real Strapi + throwaway Postgres)
@@ -70,6 +70,14 @@ PostgreSQL only. `config/database.ts` does not support other clients.
 ### Backups (`src/index.ts`)
 
 A cron (default every 6 hours, `CRON_SCHEDULE`) runs `pg_dump`, exports Strapi data, and uploads both to R2. It is off in development.
+
+### Uploads (`config/upload-storage.ts`)
+
+With `S3_UPLOAD_BUCKET` set, media goes to that R2 bucket through `@strapi/provider-upload-aws-s3` (no ACL header, R2 has none) and file URLs use `S3_UPLOAD_PUBLIC_URL`, whose origin is added to the admin's `img-src` and `media-src`. Without it, media stays in `public/uploads`. Production refuses to boot on local storage unless `UPLOAD_LOCAL=true` (set by `tests/e2e/serve.sh` and `docker-compose.yml`), since a container's disk is wiped on every deploy.
+
+### Security headers (`config/middlewares.ts`)
+
+`strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source.
 
 ### Users-permissions
 
@@ -106,7 +114,9 @@ Copy `.env.example` to `.env`. Run `./generate-keys.sh` for empty secrets. Never
 | Server | `PUBLIC_URL`, `HOST`, `PORT` |
 | Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT` |
 | Database | `DATABASE_CLIENT=postgres`, `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_SCHEMA` |
-| R2 backup | `CRON_SCHEDULE`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT`, `S3_BUCKET` |
+| R2 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (`https://<account>.eu.r2.cloudflarestorage.com`) |
+| R2 backup | `CRON_SCHEDULE`, `S3_BUCKET` (`<name>-backups`) |
+| R2 uploads | `S3_UPLOAD_BUCKET` (`<name>-files`), `S3_UPLOAD_PUBLIC_URL` (its CDN domain), `UPLOAD_LOCAL` |
 | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USERNAME`, `SMTP_PASSWORD` |
 | i18n | `STRAPI_PLUGIN_I18N_INIT_LOCALE_CODE` |
 

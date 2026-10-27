@@ -47,6 +47,7 @@ export DATABASE_PORT="$db_port"
 export DATABASE_NAME=strapi
 export DATABASE_USERNAME=strapi
 export DATABASE_PASSWORD=strapi
+export UPLOAD_LOCAL=true
 
 "$strapi" build
 "$strapi" admin:create-user --firstname E2E --lastname Admin \

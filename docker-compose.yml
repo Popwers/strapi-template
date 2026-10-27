@@ -11,6 +11,8 @@ services:
         env_file: .env
         environment:
             DATABASE_HOST: strapi-cms-db
+            # Media stays on the mounted ./public/uploads unless S3_UPLOAD_BUCKET points at R2.
+            UPLOAD_LOCAL: ${UPLOAD_LOCAL:-true}
         volumes:
             - ./public/uploads:/opt/app/public/uploads
         ports:
