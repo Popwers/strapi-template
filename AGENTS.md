@@ -26,7 +26,7 @@ Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` po
 
 ## E2E
 
-Tests run with [e2e](https://e2e.tester.army) from `tests/e2e/*.e2e.ts`, configured in `e2e.config.mts`. `make e2e` (`vp run test:e2e:ci`) skips the `agent` tag. `vp run test:e2e` runs everything. Needs Docker, Node >= 24.8 and a Chromium (`npx @e2e-dev/web install chromium` once). The e2e runner starts `tests/e2e/serve.sh`, which starts a throwaway `postgres:18-alpine` on port 5447, builds Strapi, creates an admin and serves on port 1347 in production mode. Its `EXIT` trap removes the container. Override ports with `E2E_PORT` and `E2E_DB_PORT`. `E2E_REUSE_SERVER=1` attaches to a server already on the port. `roles.setup.e2e.ts` grants the authenticated role `user.update` and `user.updateAvatar` and creates an `admin` type role: API tests take only `app`, use `fetch` (`support.ts`) and declare `{ session: ROLES }` so it runs first, even for a single file. `admin.setup.e2e.ts` saves the admin session. Browser tests import `test` from `fixtures.ts`, whose guard fails them on any `console.error`, uncaught error, failed same-origin asset or 4xx/5xx response, or CSP violation recorded by `page-errors.js` (push a pattern into `allowedPageErrors` to expect one). `agent-admin.e2e.ts` is the one agent test (admin creates a user in the Content Manager). Strapi rate-limits admin logins to 5 per 5 minutes per address, so a reused server blocks after a few runs. `tests/e2e/` is ESM with its own `tsconfig.json`, excluded from the Strapi build. Report: `.e2e/report.json`, `.e2e/junit.xml`. Agent steps use SuperGrok (`npx e2e login spacexai`). The MCP server `e2e` is registered globally by the agent harness (`e2e-mcp`), not in this repo.
+Tests run with [e2e](https://e2e.tester.army) from `tests/e2e/*.e2e.ts`, configured in `e2e.config.mts`. `make e2e` (`vp run test:e2e:ci`) skips the `agent` tag. `vp run test:e2e` runs everything. Needs Docker, Node >= 24.8 and a Chromium (`npx @e2e-dev/web install chromium` once). The e2e runner starts `tests/e2e/serve.sh`, which starts a throwaway `postgres:18-alpine` on port 5447 and an `adobe/s3mock` standing in for the R2 backups bucket on port 5448, builds Strapi, creates an admin and serves on port 1347 in production mode with the backup cron every 10 s. Its `EXIT` trap removes both containers and their volumes. Override ports with `E2E_PORT`, `E2E_DB_PORT` and `E2E_S3_PORT`. `backup.e2e.ts` waits for a Strapi archive in the mock bucket and checks the server still answers; the host usually has no `pg_dump`, so the dump step logs `spawn pg_dump ENOENT` there and only runs for real in the image. `E2E_REUSE_SERVER=1` attaches to a server already on the port. `roles.setup.e2e.ts` grants the authenticated role `user.update` and `user.updateAvatar` and creates an `admin` type role: API tests take only `app`, use `fetch` (`support.ts`) and declare `{ session: ROLES }` so it runs first, even for a single file. `admin.setup.e2e.ts` saves the admin session. Browser tests import `test` from `fixtures.ts`, whose guard fails them on any `console.error`, uncaught error, failed same-origin asset or 4xx/5xx response, or CSP violation recorded by `page-errors.js` (push a pattern into `allowedPageErrors` to expect one). `agent-admin.e2e.ts` is the one agent test (admin creates a user in the Content Manager). Strapi rate-limits admin logins to 5 per 5 minutes per address, so a reused server blocks after a few runs. `tests/e2e/` is ESM with its own `tsconfig.json`, excluded from the Strapi build. Report: `.e2e/report.json`, `.e2e/junit.xml`. Agent steps use SuperGrok (`npx e2e login spacexai`). The MCP server `e2e` is registered globally by the agent harness (`e2e-mcp`), not in this repo.
 
 ## Checks
 
@@ -51,7 +51,8 @@ src/admin/              Admin panel (locales, favicon)
 src/api/                Content-type APIs (empty in the template)
 src/extensions/users-permissions/   Custom user create/update
 src/middlewares/admin-redirect.ts   `/` and `/index.html` → `/admin`
-src/index.ts            Bootstrap. Starts the backup cron
+src/index.ts            Bootstrap. Schedules the backup cron
+src/backup.ts           Backup run: pg_dump + Strapi export to R2
 src/sentry.ts           Sentry helper
 src/sentry-noise.ts     Pure predicates behind the Sentry `beforeSend` filter
 database/migrations/    SQL migrations
@@ -67,9 +68,9 @@ PostgreSQL only. `config/database.ts` does not support other clients.
 
 ## Features
 
-### Backups (`src/index.ts`)
+### Backups (`src/backup.ts`)
 
-A cron (default every 6 hours, `CRON_SCHEDULE`) runs `pg_dump`, exports Strapi data, and uploads both to R2. It is off in development.
+A cron (default every 6 hours, `CRON_SCHEDULE`, scheduled in `src/index.ts`) runs `pg_dump` and a Strapi export, and uploads both to the `<name>-backups` R2 bucket as `<BACKUP_KEY_PREFIX>db-<ts>.sql` and `<BACKUP_KEY_PREFIX>strapi-<ts>.tar.gz` (prefix `backup-`, the one the 3-day lifecycle rule expires). The export runs inside the server through `@strapi/data-transfer`, with `autoDestroy: false` (the default destroys the live instance), because the `strapi` CLI is not on the image's PATH and would boot a second Strapi. Files go to a private dir under `os.tmpdir()`, removed after each run. The two steps are independent: one failing is logged and sent to Sentry, the other still uploads. A run that overlaps the previous one is skipped. It is off in development.
 
 ### Uploads (`config/upload-storage.ts`)
 
@@ -115,7 +116,7 @@ Copy `.env.example` to `.env`. Run `./generate-keys.sh` for empty secrets. Never
 | Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT` |
 | Database | `DATABASE_CLIENT=postgres`, `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_SCHEMA` |
 | R2 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (`https://<account>.eu.r2.cloudflarestorage.com`) |
-| R2 backup | `CRON_SCHEDULE`, `S3_BUCKET` (`<name>-backups`) |
+| R2 backup | `CRON_SCHEDULE`, `S3_BUCKET` (`<name>-backups`), `BACKUP_KEY_PREFIX` (default `backup-`) |
 | R2 uploads | `S3_UPLOAD_BUCKET` (`<name>-files`), `S3_UPLOAD_PUBLIC_URL` (its CDN domain), `UPLOAD_LOCAL` |
 | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USERNAME`, `SMTP_PASSWORD` |
 | i18n | `STRAPI_PLUGIN_I18N_INIT_LOCALE_CODE` |

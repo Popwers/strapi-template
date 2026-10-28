@@ -5,6 +5,9 @@ import { type App, expect } from 'e2e';
 
 export const PORT = Number(process.env.E2E_PORT ?? '1347');
 export const DB_PORT = Number(process.env.E2E_DB_PORT ?? '5447');
+/** S3 mock standing in for the R2 backups bucket. */
+export const S3_PORT = Number(process.env.E2E_S3_PORT ?? '5448');
+export const BACKUP_BUCKET = 'e2e-backups';
 export const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 /** Throwaway admin created by `serve.sh`; the database is removed when the run ends. */

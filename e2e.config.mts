@@ -2,11 +2,20 @@ import { web } from '@e2e-dev/web';
 import type { E2EConfig } from 'e2e';
 import { grok } from 'e2e/oauth/grok';
 
-import { ADMIN_EMAIL, ADMIN_PASSWORD, BASE_URL, DB_PORT, PORT, USER_PASSWORD } from './tests/e2e/support';
+import {
+	ADMIN_EMAIL,
+	ADMIN_PASSWORD,
+	BACKUP_BUCKET,
+	BASE_URL,
+	DB_PORT,
+	PORT,
+	S3_PORT,
+	USER_PASSWORD,
+} from './tests/e2e/support';
 
 /**
- * Suite against the production build. `tests/e2e/serve.sh` starts a throwaway Postgres, builds
- * Strapi, creates the admin and serves it; it removes the database on exit.
+ * Suite against the production build. `tests/e2e/serve.sh` starts a throwaway Postgres and an S3
+ * mock, builds Strapi, creates the admin and serves it; it removes both containers on exit.
  * `E2E_REUSE_SERVER=1` reuses a server already listening on the port (local iteration only).
  */
 export default {
@@ -28,6 +37,8 @@ export default {
 					env: {
 						E2E_PORT: String(PORT),
 						E2E_DB_PORT: String(DB_PORT),
+						E2E_S3_PORT: String(S3_PORT),
+						E2E_BACKUP_BUCKET: BACKUP_BUCKET,
 						E2E_ADMIN_EMAIL: ADMIN_EMAIL,
 						E2E_ADMIN_PASSWORD: ADMIN_PASSWORD,
 					},
