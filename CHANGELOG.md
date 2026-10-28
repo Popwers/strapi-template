@@ -1,3 +1,16 @@
+# [1.1.0](https://github.com/Popwers/strapi-template/compare/v1.0.2...v1.1.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* **backup:** export in-process so the cron works in the Docker image ([46037a6](https://github.com/Popwers/strapi-template/commit/46037a69dad90a64548e51d7fdcc11dbb7b471c2))
+* **docker:** run the strapi binary as PID 1 so SIGTERM reaches it ([e423296](https://github.com/Popwers/strapi-template/commit/e423296d507f389d10bfd5f024650880dd3f3857))
+
+
+### Features
+
+* **upload:** store media in the R2 files bucket ([a318d8c](https://github.com/Popwers/strapi-template/commit/a318d8c2f77448b0a0e39a76db4a7d8bd8037cec))
+
 ## [1.0.2](https://github.com/Popwers/strapi-template/compare/v1.0.1...v1.0.2) (2026-10-19)
 
 

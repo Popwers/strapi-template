@@ -1,7 +1,7 @@
 {
   "name": "strapi-template",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Strapi CMS",
   "scripts": {
     "prepare": "vp config --no-agent || true",
