@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Popwers/strapi-template/compare/v1.1.0...v1.2.0) (2026-10-29)
+
+
+### Features
+
+* Sentry PII scrub, backup heartbeat and JWT revocation on password change ([#32](https://github.com/Popwers/strapi-template/issues/32)) ([612d9fc](https://github.com/Popwers/strapi-template/commit/612d9fcb58a07b30ec39977cbb2b0b79c09143e5))
+
 # [1.1.0](https://github.com/Popwers/strapi-template/compare/v1.0.2...v1.1.0) (2026-10-28)
 
 
