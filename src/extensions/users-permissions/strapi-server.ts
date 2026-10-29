@@ -1,10 +1,15 @@
 import { generateUser, parseFiles } from './helper';
+import { revokeTokensOnPasswordChange } from './password-change';
 
-const notAllowedFields = ['provider', 'confirmed', 'blocked', 'role'];
+const notAllowedFields = ['provider', 'confirmed', 'blocked', 'role', 'passwordChangedAt'];
 
-const notAllowedFieldsContentManager = ['provider', 'role'];
+const notAllowedFieldsContentManager = ['provider', 'role', 'passwordChangedAt'];
 
 export default async (plugin) => {
+	// A JWT issued before the last password change is refused (`password-change.ts`).
+	const jwtService = plugin.services.jwt;
+	plugin.services.jwt = (deps) => revokeTokensOnPasswordChange(deps.strapi, jwtService(deps));
+
 	const contentManagerUserCreateController = plugin.controllers.contentmanageruser.create;
 	const createUserController = plugin.controllers.user.create;
 

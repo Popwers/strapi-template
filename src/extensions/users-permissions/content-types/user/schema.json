@@ -42,6 +42,13 @@
 			"searchable": false,
 			"configurable": false
 		},
+		"passwordChangedAt": {
+			"type": "datetime",
+			"private": true,
+			"searchable": false,
+			"configurable": false,
+			"visible": false
+		},
 		"confirmationToken": {
 			"type": "string",
 			"private": true,

@@ -7,6 +7,7 @@ import {
 	ADMIN_PASSWORD,
 	BACKUP_BUCKET,
 	BASE_URL,
+	DB_CONTAINER,
 	DB_PORT,
 	PORT,
 	S3_PORT,
@@ -37,6 +38,7 @@ export default {
 					env: {
 						E2E_PORT: String(PORT),
 						E2E_DB_PORT: String(DB_PORT),
+						E2E_DB_CONTAINER: DB_CONTAINER,
 						E2E_S3_PORT: String(S3_PORT),
 						E2E_BACKUP_BUCKET: BACKUP_BUCKET,
 						E2E_ADMIN_EMAIL: ADMIN_EMAIL,
