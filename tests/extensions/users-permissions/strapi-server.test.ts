@@ -99,6 +99,7 @@ interface UsersPermissionsPlugin {
 	};
 	policies: Record<string, Policy>;
 	routes: { 'content-api': { routes: Route[] } };
+	services: { jwt: () => { verify: (token: string) => Promise<{ id?: number; iat?: number }> } };
 }
 
 const mockPlugin = (register: RegisterHandler = async () => {}): UsersPermissionsPlugin => ({
@@ -113,6 +114,7 @@ const mockPlugin = (register: RegisterHandler = async () => {}): UsersPermission
 			routes: [{ method: 'PUT', path: '/users/:id', config: {} }],
 		},
 	},
+	services: { jwt: () => ({ verify: async () => ({}) }) },
 });
 
 const AUTHENTICATED_ROLE = { id: 1, type: 'authenticated' };

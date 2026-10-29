@@ -2,7 +2,9 @@ import type { Core } from '@strapi/strapi';
 
 import { assertDurableUploadStorage } from '../config/upload-storage';
 import { runBackup } from './backup';
-import sendError from './sentry';
+import { backupMonitorConfig, monitorBackup } from './backup-monitor';
+import { stampPasswordChanges } from './extensions/users-permissions/password-change';
+import sendError, { sentryCheckIns } from './sentry';
 
 let isBackupRunning = false;
 
@@ -11,7 +13,18 @@ export default {
 		assertDurableUploadStorage();
 	},
 
-	bootstrap({ strapi }: { strapi: Core.Strapi }) {
+	async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+		stampPasswordChanges(strapi);
+		// The upload plugin creates the "API Uploads" folder on the first API upload; two first
+		// uploads at once both insert it and one fails on its unique index. Create it once here.
+		await strapi.plugin('upload').service('api-upload-folder').getAPIUploadFolder();
+
+		const backupSchedule = process.env.CRON_SCHEDULE || '0 */6 * * *';
+		// `strapi.cron` schedules in the server's timezone; the monitor must expect runs in the same.
+		const monitorConfig = backupMonitorConfig(
+			backupSchedule,
+			Intl.DateTimeFormat().resolvedOptions().timeZone,
+		);
 		strapi.cron.add({
 			backup: {
 				task: async ({ strapi }) => {
@@ -23,7 +36,13 @@ export default {
 					}
 					isBackupRunning = true;
 					try {
-						await runBackup(strapi);
+						// Each failed step is already sent to Sentry; the check-ins add the heartbeat.
+						await monitorBackup(
+							sentryCheckIns(strapi),
+							monitorConfig,
+							() => runBackup(strapi),
+							(error) => strapi.log.warn('Backup monitor check-in failed:', error),
+						);
 					} catch (error) {
 						strapi.log.error('Backup failed:', error);
 						sendError(strapi, error);
@@ -32,7 +51,7 @@ export default {
 					}
 				},
 				options: {
-					rule: process.env.CRON_SCHEDULE || '0 */6 * * *',
+					rule: backupSchedule,
 				},
 			},
 		});

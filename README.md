@@ -11,7 +11,7 @@ After you clone this template, replace the placeholders before you go further.
 1. Rename the project. Set `name` in `package.json`. semantic-release reads the repository from the git remote.
 2. Generate secrets. `cp .env.example .env && sh generate-keys.sh` (fills `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`; values are written to `.env` only, never printed).
 3. Set the sender address. `defaultFrom` / `defaultReplyTo` in `config/plugins.ts` (currently `not-reply@your-project.fr`).
-4. Name your backups. Change the backup file prefix in `src/index.ts` (currently `name-of-your-company-strapi-backup-`).
+4. Set up the backup monitor. Each backup run checks in to the Sentry cron monitor `strapi-backup` (created on the first check-in from a five-field `CRON_SCHEDULE`); add an alert on it so a failed or missed run reaches you.
 5. Install deps and Git hooks. `make install` (`vp i` then `vp config`; staged files get `vp check --fix` on commit, and a push runs `make verify`, plus the e2e suite when app code changed).
 6. Generate content types. After you create content types, run `vp run gen:types`.
 

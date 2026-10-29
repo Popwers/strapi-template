@@ -108,10 +108,13 @@ async function uploadArtifact(s3Client: S3Client, artifact: BackupArtifact): Pro
 /**
  * Runs one backup: a database dump and a Strapi archive, each uploaded to `<name>-backups` under
  * `BACKUP_KEY_PREFIX` (the prefix the 3-day lifecycle rule expires). The two steps are independent:
- * one failing is reported and the other still lands.
+ * one failing is reported and the other still lands. The Strapi archive carries the media library
+ * too: the export streams every file of the upload plugin, from `<name>-files` through its URL on
+ * R2, so the files bucket is backed up alongside the database.
  * @param strapi - The running Strapi instance.
+ * @returns True when both steps uploaded.
  */
-export async function runBackup(strapi: Core.Strapi): Promise<void> {
+export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 	const timestamp = Date.now();
 	const prefix = process.env.BACKUP_KEY_PREFIX ?? 'backup-';
 	const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'strapi-backup-'));
@@ -146,6 +149,7 @@ export async function runBackup(strapi: Core.Strapi): Promise<void> {
 	];
 
 	strapi.log.info('Starting backup process...');
+	let isSuccessful = true;
 	try {
 		for (const step of steps) {
 			try {
@@ -153,10 +157,12 @@ export async function runBackup(strapi: Core.Strapi): Promise<void> {
 				await uploadArtifact(s3Client, artifact);
 				strapi.log.info(`Backup ${step.name} uploaded to ${artifact.key}`);
 			} catch (error) {
+				isSuccessful = false;
 				strapi.log.error(`Backup ${step.name} failed:`, error);
 				sendError(strapi, error);
 			}
 		}
+		return isSuccessful;
 	} finally {
 		fs.rmSync(workDir, { recursive: true, force: true });
 		strapi.log.info('Backup process finished');
