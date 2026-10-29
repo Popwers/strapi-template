@@ -7,14 +7,12 @@ done.
 
 ## Execution order & status
 
+Plans 002, 004, 005 and 006 shipped on 2026-06-15 and were removed; git history keeps them.
+
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
 | 001  | Fix semantic-release branch + CI gate | P1 | S | — | DEFERRED — user opted out of GitHub CI (2026-06-15) |
-| 002  | Upgrade Strapi 5.33.3 → 5.48.0 (clears 11 critical CVEs) | P1 | M | 001 (soft) | DONE (2026-06-15) — see execution log |
 | 003  | Harden backup cron (stream, async, encrypt, BACKUP_ENABLED) | P2 | M | — | DEFERRED — user excluded backup work this round (2026-06-15) |
-| 004  | users-permissions hardening (policy returns, role coupling doc, drop lodash) | P2 | S | — | DONE (2026-06-15) |
-| 005  | Test baseline (helper + isOwnerOrAdmin unit tests) | P2 | M | 004 (preferred) | DONE (2026-06-15) |
-| 006  | Template polish (generate-keys.sh, .editorconfig yml, README checklist) | P3 | S | — | DONE (2026-06-15) |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale) | DEFERRED (with one-line reason)
 
