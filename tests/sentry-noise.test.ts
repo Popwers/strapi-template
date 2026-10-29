@@ -131,6 +131,7 @@ describe('isKnownNoise', () => {
 interface CapturedEvent {
 	exception?: { values?: { type?: string; value?: string }[] };
 	request?: { url?: string; method?: string };
+	user?: { id?: number; email?: string };
 	tags?: { context?: string };
 }
 
@@ -348,6 +349,29 @@ describe('Sentry plugin with the CMS beforeSend', () => {
 			expect(rest).toEqual([]);
 			expect(event?.exception?.values?.[0]).toMatchObject({ type, value });
 			expect(event?.request).toMatchObject({ method: 'POST', url: `${baseUrl}/bug` });
+		});
+
+		test('reports the request method and path only, and the user id only', async () => {
+			raise('/bug', (ctx) => {
+				// What a body parser and an authenticated user leave on the request Sentry parses.
+				Object.assign(ctx.request, {
+					body: { password: 'hunter2', code: 'reset-code' },
+					user: { id: 7, email: 'someone@example.com' },
+				});
+				return throwIt(new Error('Lost the database connection'));
+			});
+
+			const response = await fetch(`${baseUrl}/bug?confirmation=secret-token#fragment`, {
+				method: 'POST',
+				headers: { authorization: 'Bearer secret-jwt', cookie: 'strapi_up_refresh=secret-refresh' },
+			});
+			await response.text();
+			await flush();
+
+			const [event] = reportedErrors();
+			expect(event?.exception?.values?.[0]).toMatchObject({ value: 'Lost the database connection' });
+			expect(event?.request).toEqual({ method: 'POST', url: `${baseUrl}/bug` });
+			expect(event?.user).toEqual({ id: 7 });
 		});
 
 		test('reports a BadRequestError that only contains Malicious Path', async () => {

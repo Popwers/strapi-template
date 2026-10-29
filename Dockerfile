@@ -100,6 +100,11 @@ RUN chown node:node /opt/app
 
 USER node
 
+# Sentry release: Coolify passes the deployed commit as a build argument ("Include source commit
+# in build"); `config/plugins.ts` reads it. Declared last so a new commit only rebuilds this layer.
+ARG SOURCE_COMMIT=""
+ENV SOURCE_COMMIT=${SOURCE_COMMIT}
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl --fail --silent --output /dev/null "http://127.0.0.1:${PORT:-1337}/_health" || exit 1
 
