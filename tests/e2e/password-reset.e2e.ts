@@ -6,7 +6,8 @@ import { expect, test } from 'e2e';
 
 import { type AuthResponse, api, bearer, DB_CONTAINER, registerUser, ROLES, sendJson } from './support';
 
-const NEW_PASSWORD = 'E2e-Reset-Passw0rd';
+/** Generated per run: a throwaway test value, never a literal in the source. */
+const NEW_PASSWORD = `Reset-${randomBytes(12).toString('base64url')}-9a`;
 
 /**
  * Stores a reset code on the user, as `/auth/forgot-password` does before mailing it: the suite has
