@@ -13,8 +13,11 @@ export default {
 		assertDurableUploadStorage();
 	},
 
-	bootstrap({ strapi }: { strapi: Core.Strapi }) {
+	async bootstrap({ strapi }: { strapi: Core.Strapi }) {
 		stampPasswordChanges(strapi);
+		// The upload plugin creates the "API Uploads" folder on the first API upload; two first
+		// uploads at once both insert it and one fails on its unique index. Create it once here.
+		await strapi.plugin('upload').service('api-upload-folder').getAPIUploadFolder();
 
 		const backupSchedule = process.env.CRON_SCHEDULE || '0 */6 * * *';
 		// `strapi.cron` schedules in the server's timezone; the monitor must expect runs in the same.
