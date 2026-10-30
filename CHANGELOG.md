@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Popwers/strapi-template/compare/v1.2.0...v1.2.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **security:** restrict CORS to the front's origins ([#34](https://github.com/Popwers/strapi-template/issues/34)) ([047cbcb](https://github.com/Popwers/strapi-template/commit/047cbcb21e0930b29d7055ca106bacc5360e8488))
+
 # [1.2.0](https://github.com/Popwers/strapi-template/compare/v1.1.0...v1.2.0) (2026-10-29)
 
 
