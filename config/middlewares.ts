@@ -1,4 +1,4 @@
-import { CSP_DEFAULTS } from '@strapi/utils';
+import { CSP_DEFAULTS, env } from '@strapi/utils';
 
 import { uploadMediaOrigins } from './upload-storage';
 
@@ -8,7 +8,14 @@ interface SecurityConfig {
 	hsts: false;
 }
 
-type MiddlewareEntry = string | { resolve: string } | { name: 'strapi::security'; config: SecurityConfig };
+/** Options passed through to the `strapi::cors` middleware (@koa/cors). */
+type CorsConfig = Record<'origin', string[]>;
+
+type MiddlewareEntry =
+	| string
+	| { resolve: string }
+	| { name: 'strapi::security'; config: SecurityConfig }
+	| { name: 'strapi::cors'; config: CorsConfig };
 
 const mediaOrigins = uploadMediaOrigins();
 
@@ -30,7 +37,13 @@ const middlewares: MiddlewareEntry[] = [
 			hsts: false,
 		},
 	},
-	'strapi::cors',
+	{
+		name: 'strapi::cors',
+		// Front origins allowed to read API responses. The default (`*`) echoes any Origin with
+		// credentials, and an `origin` that resolves to undefined is treated as `*`, so the fallback
+		// stays a concrete dev origin (the Astro dev server). An empty value allows nobody.
+		config: { origin: env.array('CORS_ORIGINS', ['http://localhost:4321']) },
+	},
 	'strapi::poweredBy',
 	'strapi::query',
 	'strapi::body',

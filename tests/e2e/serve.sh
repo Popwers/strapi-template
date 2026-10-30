@@ -55,6 +55,7 @@ export DATABASE_NAME=strapi
 export DATABASE_USERNAME=strapi
 export DATABASE_PASSWORD=strapi
 export UPLOAD_LOCAL=true
+export CORS_ORIGINS="${E2E_CORS_ORIGIN:-https://front.e2e.test}"
 # Backups: the cron fires every 10 s (six-field rule) into the mock bucket. The host may have no
 # pg_dump, so only the Strapi archive is asserted; the dump step reports its own failure.
 export CRON_SCHEDULE='*/10 * * * * *'

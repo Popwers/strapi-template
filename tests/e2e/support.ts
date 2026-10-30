@@ -11,6 +11,8 @@ export const DB_CONTAINER = process.env.E2E_DB_CONTAINER ?? 'strapi-template-e2e
 export const S3_PORT = Number(process.env.E2E_S3_PORT ?? '5448');
 export const BACKUP_BUCKET = 'e2e-backups';
 export const BASE_URL = `http://127.0.0.1:${PORT}`;
+/** Front origin `serve.sh` puts in `CORS_ORIGINS`: the only one the API answers with CORS headers. */
+export const FRONT_ORIGIN = process.env.E2E_CORS_ORIGIN ?? 'https://front.e2e.test';
 
 /** Throwaway admin created by `serve.sh`; the database is removed when the run ends. */
 export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@e2e.test';
