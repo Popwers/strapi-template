@@ -9,7 +9,9 @@ interface SecurityConfig {
 }
 
 /** Options passed through to the `strapi::cors` middleware (@koa/cors). */
-type CorsConfig = Record<'origin', string[]>;
+interface CorsConfig {
+	origin: string[];
+}
 
 type MiddlewareEntry =
 	| string
