@@ -86,6 +86,8 @@ With `S3_UPLOAD_BUCKET` set, media goes to that R2 bucket through `@strapi/provi
 
 `strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source.
 
+`strapi::cors` takes its `origin` from `CORS_ORIGINS` (`env.array`), with `http://localhost:4321` as the fallback. Strapi's default (`*` with credentials) echoes any Origin, and an `origin` that resolves to undefined is treated as `*` too, so never read the variable without a fallback and never put `*` in it. An Origin outside the list gets no `Access-Control-Allow-Origin`; `cors.e2e.ts` checks it on the real server.
+
 ### Users-permissions
 
 `src/extensions/users-permissions/`:
@@ -121,7 +123,7 @@ Copy `.env.example` to `.env`. Run `./generate-keys.sh` for empty secrets. Never
 
 | Group | Variables |
 | --- | --- |
-| Server | `PUBLIC_URL`, `HOST`, `PORT` |
+| Server | `PUBLIC_URL`, `HOST`, `PORT`, `CORS_ORIGINS` (comma-separated front origins, e.g. `https://<domain>`, required in production; unset falls back to `http://localhost:4321`) |
 | Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT` |
 | Database | `DATABASE_CLIENT=postgres`, `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_SCHEMA` |
 | R2 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (`https://<account>.eu.r2.cloudflarestorage.com`) |

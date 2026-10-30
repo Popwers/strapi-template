@@ -24,3 +24,17 @@ describe('middleware stack order', () => {
 		expect(compression).toBeLessThan(favicon);
 	});
 });
+
+describe('cors', () => {
+	test('is configured with an explicit origin list, never the wildcard default', () => {
+		const cors = middlewares.find(
+			(entry) => !isMiddlewareName(entry) && 'name' in entry && entry.name === 'strapi::cors',
+		);
+
+		expect(cors).toBeDefined();
+		if (cors === undefined || isMiddlewareName(cors) || !('config' in cors)) return;
+		if (!('origin' in cors.config)) throw new Error('strapi::cors has no origin');
+		expect(cors.config.origin.length).toBeGreaterThan(0);
+		expect(cors.config.origin).not.toContain('*');
+	});
+});
