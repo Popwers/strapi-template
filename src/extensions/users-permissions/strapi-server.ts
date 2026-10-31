@@ -163,9 +163,12 @@ export default async (plugin) => {
 		},
 	});
 
-	plugin.routes['content-api'].routes.find(
+	const updateUserRoute = plugin.routes['content-api'].routes.find(
 		(route) => route.method === 'PUT' && route.path === '/users/:id',
-	).config.policies = ['isOwnerOrAdmin'];
+	);
+	// Fail the boot rather than serve `PUT /users/:id` without its ownership policy.
+	if (!updateUserRoute) throw new Error('users-permissions: PUT /users/:id route not found');
+	updateUserRoute.config.policies = ['isOwnerOrAdmin'];
 
 	const newUserWriteBody = (ctx) => ({
 		email: ctx.request.body.email,

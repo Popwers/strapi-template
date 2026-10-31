@@ -149,6 +149,7 @@ export default defineConfig({
 	// Run on staged files at commit time. Hook is installed once with `vp config`.
 	staged: {
 		'*.{js,jsx,ts,tsx,vue,svelte,astro,json,css,scss,html,md}': 'vp check --fix',
+		'*.{js,jsx,ts,tsx}': 'react-doctor --no-telemetry --no-supply-chain --blocking warning',
 	},
 
 	// Tests are authored against `bun:test`; alias it to `vitest` so the same

@@ -62,7 +62,7 @@ beforeAll(() => {
 		init: {
 			transport: () => ({
 				send: async (envelope: [object, CapturedItem[]]) => {
-					const [, items]: [object, CapturedItem[]] = JSON.parse(JSON.stringify(envelope));
+					const [, items] = envelope;
 					captured.push(...items);
 					return {};
 				},

@@ -22,6 +22,12 @@ interface BackupArtifact {
 	contentType: string;
 }
 
+/** One independent unit of a backup: produces a file to upload. */
+interface BackupStep {
+	name: string;
+	produce: () => Promise<BackupArtifact>;
+}
+
 /**
  * Reads a required environment variable, throwing if it is missing or empty.
  * Narrows the return type to `string`, since `process.env[name]` is otherwise
@@ -129,7 +135,7 @@ export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 		},
 	});
 
-	const steps: { name: string; produce: () => Promise<BackupArtifact> }[] = [
+	const steps: BackupStep[] = [
 		{
 			name: 'database dump',
 			produce: async () => {
@@ -148,21 +154,30 @@ export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 		},
 	];
 
-	strapi.log.info('Starting backup process...');
-	let isSuccessful = true;
-	try {
-		for (const step of steps) {
-			try {
-				const artifact = await step.produce();
-				await uploadArtifact(s3Client, artifact);
-				strapi.log.info(`Backup ${step.name} uploaded to ${artifact.key}`);
-			} catch (error) {
-				isSuccessful = false;
-				strapi.log.error(`Backup ${step.name} failed:`, error);
-				sendError(strapi, error);
-			}
+	/**
+	 * Produces and uploads one step's artifact. A failure is reported and returned as `false`
+	 * instead of thrown, so the other step still runs.
+	 * @param step - The step to run.
+	 * @returns True when the artifact was uploaded.
+	 */
+	const runStep = async (step: BackupStep): Promise<boolean> => {
+		try {
+			const artifact = await step.produce();
+			await uploadArtifact(s3Client, artifact);
+			strapi.log.info(`Backup ${step.name} uploaded to ${artifact.key}`);
+			return true;
+		} catch (error) {
+			strapi.log.error(`Backup ${step.name} failed:`, error);
+			sendError(strapi, error);
+			return false;
 		}
-		return isSuccessful;
+	};
+
+	strapi.log.info('Starting backup process...');
+	try {
+		// The steps share no state (own work files, own keys), so they run side by side.
+		const outcomes = await Promise.all(steps.map(runStep));
+		return outcomes.every(Boolean);
 	} finally {
 		fs.rmSync(workDir, { recursive: true, force: true });
 		strapi.log.info('Backup process finished');

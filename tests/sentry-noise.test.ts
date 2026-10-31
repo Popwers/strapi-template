@@ -212,7 +212,7 @@ beforeAll(async () => {
 			...init,
 			transport: () => ({
 				send: async (envelope) => {
-					const [, items]: CapturedEnvelope = JSON.parse(JSON.stringify(envelope));
+					const [, items]: CapturedEnvelope = envelope;
 					captured.push(...items);
 					return {};
 				},
