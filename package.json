@@ -41,7 +41,7 @@
     "@types/react-dom": "^18",
     "ai": "^7.0.159",
     "e2e": "^0.22.0",
-    "react-doctor": "^0.9.21",
+    "react-doctor": "^0.9.22",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
     "vite-plus": "^1.4.0"
