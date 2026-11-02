@@ -1,0 +1,7 @@
+HTTP/1.1 204 No Content
+Vary: Origin
+Access-Control-Allow-Origin: http://localhost:4321
+Access-Control-Allow-Credentials: true
+Access-Control-Max-Age: 31536000
+Access-Control-Allow-Methods: GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS
+Access-Control-Allow-Headers: Content-Type,Authorization,Origin,Accept

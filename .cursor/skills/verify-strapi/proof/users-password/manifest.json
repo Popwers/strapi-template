@@ -1,0 +1,29 @@
+{
+  "feature": "users-password",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-pw@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "sleep 1.2",
+    "verify-strapi http POST /api/auth/change-password --header 'Authorization: Bearer <jwt1>' --json '{\"currentPassword\":\"WrongPass1!\",...}'",
+    "verify-strapi http POST /api/auth/change-password --header 'Authorization: Bearer <jwt1>' --json '{\"currentPassword\":\"VerifyUser1!\",\"password\":\"VerifyUser2!\",\"passwordConfirmation\":\"VerifyUser2!\"}'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt1>'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt2>'",
+    "verify-strapi http POST /api/auth/local --json '{\"identifier\":\"verify-pw@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "sleep 1.2",
+    "verify-strapi http PUT /api/users/<id> --header 'Authorization: Bearer <jwt2>' --json '{\"password\":\"VerifyUser3!\"}'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt2>'",
+    "verify-strapi http POST /api/auth/local --json '{\"identifier\":\"verify-pw@example.com\",\"password\":\"VerifyUser3!\"}'"
+  ],
+  "checks": [
+    { "name": "register", "status": 200, "pass": true },
+    { "name": "change-password wrong current", "status": 400, "message": "The provided current password is invalid", "pass": true },
+    { "name": "jwt1 still valid after refused change", "status": 200, "pass": true },
+    { "name": "change-password ok returns new jwt", "status": 200, "pass": true },
+    { "name": "jwt1 after change", "status": 401, "pass": true },
+    { "name": "jwt2 after change", "status": 200, "passwordChangedAtExposed": false, "pass": true },
+    { "name": "login with old password", "status": 400, "pass": true },
+    { "name": "PUT /api/users/:id with password, no jwt returned", "status": 200, "pass": true },
+    { "name": "jwt2 after PUT password", "status": 401, "pass": true },
+    { "name": "login with new password", "status": 200, "pass": true }
+  ]
+}

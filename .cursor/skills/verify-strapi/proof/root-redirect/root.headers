@@ -1,7 +1,6 @@
 HTTP/1.1 302 Found
-Content-Security-Policy: connect-src 'self' https:;img-src 'self' data: blob: https://market-assets.strapi.io;media-src 'self' data: blob:;default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline'
+Content-Security-Policy: img-src 'self' data: blob: https://market-assets.strapi.io;media-src 'self' data: blob:;connect-src 'self' https:;default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline'
 Referrer-Policy: no-referrer
-Strict-Transport-Security: max-age=31536000; includeSubDomains
 X-Content-Type-Options: nosniff
 X-DNS-Prefetch-Control: off
 X-Download-Options: noopen
@@ -14,7 +13,7 @@ Location: /admin
 Content-Type: text/html; charset=utf-8
 Content-Length: 22
 X-Powered-By: Strapi <strapi.io>
-Date: Mon, 28 Sep 2026 07:34:37 GMT
+Date: Mon, 02 Nov 2026 20:51:05 GMT
 Connection: keep-alive
 Keep-Alive: timeout=5
 

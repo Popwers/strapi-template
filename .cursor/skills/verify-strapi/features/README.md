@@ -47,3 +47,5 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Users register](./users-register.md) covers public registration, generated usernames, and ignored extra fields.
 - [Users avatar](./users-avatar.md) covers authenticated avatar upload on `POST /api/users/avatar`.
 - [Users update](./users-update.md) covers an owner updating their own user and the rejection of other callers.
+- [Users password](./users-password.md) covers a password change and the sign-out of the user's earlier JWTs.
+- [CORS](./cors.md) covers which browser origins may call the API.
