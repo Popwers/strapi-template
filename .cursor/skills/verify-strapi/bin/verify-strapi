@@ -44,8 +44,8 @@ verify-strapi <command>
 Commands:
   launch [--port N] [--pg-port N] [--json]   Start isolated Postgres + strapi develop
   doctor [--json]                            Read-only health check (exit 0 = driveable)
-  http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE]
-                                             Request against the owned origin. --out-body keeps the response body.
+  http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE] [--out-headers FILE]
+                                             Request against the owned origin. --out-body / --out-headers keep the response body / headers.
   screenshot --path FILE [--url /p]          Headless Chrome PNG
   drive root-redirect                        Scripted root-redirect recipe + proof/
   cleanup                                    Stop what launch started (keep proof/)
@@ -346,7 +346,7 @@ cmd_launch() {
 	(
 		cd "$ROOT"
 		unset PORT DATABASE_CLIENT DATABASE_HOST DATABASE_PORT DATABASE_NAME
-		unset DATABASE_USERNAME DATABASE_PASSWORD DATABASE_SCHEMA DATABASE_SSL PUBLIC_URL HOST
+		unset DATABASE_USERNAME DATABASE_PASSWORD DATABASE_SCHEMA DATABASE_SSL PUBLIC_URL HOST CORS_ORIGINS
 		set -a
 		# shellcheck disable=SC1090
 		. "$ENV_FILE"
@@ -544,7 +544,7 @@ http_request() {
 }
 
 cmd_http() {
-	local method="${1:-}" path="${2:-}" follow=1 json_body="" out_body=""
+	local method="${1:-}" path="${2:-}" follow=1 json_body="" out_body="" out_headers=""
 	HDRS=()
 	FORMS=()
 	shift $(( $# >= 1 ? 1 : 0 )) || true
@@ -574,10 +574,15 @@ cmd_http() {
 			out_body="$2"
 			shift 2
 			;;
+		--out-headers)
+			[ $# -ge 2 ] || die "--out-headers needs a value"
+			out_headers="$2"
+			shift 2
+			;;
 		*) die "unknown http flag: $1" ;;
 		esac
 	done
-	http_request "$method" "$path" "$follow" "$json_body" "$out_body"
+	http_request "$method" "$path" "$follow" "$json_body" "$out_body" "$out_headers"
 }
 
 chrome_bin() {

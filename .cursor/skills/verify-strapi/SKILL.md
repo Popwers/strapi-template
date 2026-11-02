@@ -25,7 +25,7 @@ What launch does:
 2. Puts Postgres 18 binaries on `PATH` (`~/.local/opt/postgresql-*/bin` or `/usr/lib/postgresql/*/bin`).
 3. Runs `npm ci` if `node_modules/@strapi/strapi` is missing. Package manager is npm (`package-lock.json`). Its `prepare` script runs `vp config`, which points the clone's Git hooks at `.vite-hooks/` like `make install` does. The lockfile installs `@types/bun`. If that directory is still missing, launch copies `scaffolding/types-bun/` into `node_modules/@types/bun` with a `.verify-strapi-scaffold` marker so `strapi develop` can typecheck `tests/` (`bun:test`). Cleanup deletes that directory only when the marker is present. It does not change `package.json` or `package-lock.json`.
 4. Starts a **native** Postgres on `VERIFY_PGPORT` (default `5441`) with user/db `strapi_verify` / `strapi_verify` in `/tmp/verify-strapi/pgdata`. Does not use `docker compose` (compose pins container names `strapi-cms` / `strapi-cms-db` and host ports `1337` / `5432`).
-5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` (agent or CI shells may inject another stack's values). Exports disposable env only — **does not write repo `.env`**.
+5. Unsets inherited `PORT` / `DATABASE_*` / `PUBLIC_URL` / `HOST` / `CORS_ORIGINS` (agent or CI shells may inject another stack's values). Exports disposable env only — **does not write repo `.env`**.
 6. Starts `vp run dev` (falls back to `npm run dev`) which runs `strapi develop` from the repo root with `HOST=127.0.0.1`, `PORT=<http>`, `PUBLIC_URL=http://127.0.0.1:<http>`, `NODE_ENV=development`. Do not use `node --run dev` on Node 20 — that flag needs Node 22+. Backup cron in `src/index.ts` returns immediately in development; dummy `S3_*` values are never used.
 7. Waits until `GET /_health` is 204 (first boot compiles the admin SPA; budget 5 minutes).
 
@@ -102,14 +102,16 @@ Stable handles from this repo:
 | Generated username | response `user.username` matches `username_<12 hex chars>` (`src/extensions/users-permissions/helper.ts`) |
 | Extra register keys | `role`, `provider`, and a client `username` are dropped. The POST still returns 200 and a generated username. It does not return 400 |
 | Avatar | `POST /api/users/avatar` multipart field `files.avatar`. Anonymous and ungranted calls are 403 until the Authenticated role has `user.updateAvatar` |
-| Profile update | `PUT /api/users/:id` (numeric id). Owner may change `username`. `blocked`, `role`, `provider`, and `confirmed` are stripped. Other users and anonymous callers get 403 |
+| Profile update | `PUT /api/users/:id` (numeric id). Owner may change `username`. `blocked`, `role`, `provider`, `confirmed`, and `passwordChangedAt` are stripped. Other users and anonymous callers get 403 |
+| Password change | `POST /api/auth/change-password` (granted to Authenticated on a fresh database) returns a new `jwt`; every JWT issued in an earlier second then gets 401. A `password` sent through `PUT /api/users/:id` does the same and returns no token |
+| CORS | `Access-Control-Allow-Origin` is echoed only for an origin in `CORS_ORIGINS` (unset: `http://localhost:4321`). A foreign `Origin` gets no such header. Read headers with `--out-headers` |
 | User content-type label | Content-Manager display name `Utilisateur` |
 | Admin locales | `fr`, `fr-FR`, `en` (`src/admin/app.tsx`) |
 | Default REST page | `defaultLimit` 25, `maxLimit` 100 (`config/api.ts`) |
 
 There are no `data-testid` attributes in this template. Do not use coordinates or tab order. Prefer `/admin/init`, `/_health`, and the redirect `Location` header.
 
-Public `auth.register` and authenticated `user.me` are granted on a fresh Strapi install. `POST /api/users/avatar` and `PUT /api/users/:id` are 403 until an admin enables `user.updateAvatar` and `user.update` on the Authenticated role (`PUT /users-permissions/roles/:id` with the role's existing `permissions` object at the top level of the body, those actions `enabled: true`). A body wrapped as `{ "data": ... }` or `{ "role": ... }` still returns `{"ok":true}` and deletes every existing grant. A 403 before that grant is the fresh-database state, not a missing route. Anonymous avatar upload is also 403 (the permission layer runs before the controller's 401).
+Public `auth.register` and authenticated `user.me` and `auth.changePassword` are granted on a fresh Strapi install. `POST /api/users/avatar` and `PUT /api/users/:id` are 403 until an admin enables `user.updateAvatar` and `user.update` on the Authenticated role (`PUT /users-permissions/roles/:id` with the role's existing `permissions` object at the top level of the body, those actions `enabled: true`). A body wrapped as `{ "data": ... }` or `{ "role": ... }` still returns `{"ok":true}` and deletes every existing grant. A 403 before that grant is the fresh-database state, not a missing route. Anonymous avatar upload is also 403 (the permission layer runs before the controller's 401).
 
 ## Evidence
 
@@ -157,7 +159,7 @@ If launch failed halfway, run cleanup anyway. The state file records whatever wa
 | --- | --- |
 | `launch [--port N] [--pg-port N]` | Start isolated Postgres + `strapi develop`, write state, wait for `/_health` |
 | `doctor` | Read-only ownership + health check |
-| `http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE]` | Request against the owned origin. Repeat `--header` and `--form`. Do not combine `--json` and `--form`. `--out-body` copies the response body; redact tokens before committing proof |
+| `http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE] [--out-headers FILE]` | Request against the owned origin. Repeat `--header` and `--form`. Do not combine `--json` and `--form`. `--out-body` copies the response body and `--out-headers` the response headers; redact tokens before committing proof |
 | `screenshot --path FILE [--url /path]` | Headless Chrome PNG of a path |
 | `drive root-redirect` | Scripted recipe + `proof/root-redirect/`. Other feature IDs are driven with `http` from their feature file |
 | `cleanup` | Tear down what this run started |

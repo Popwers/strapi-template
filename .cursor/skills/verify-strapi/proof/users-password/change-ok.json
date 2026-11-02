@@ -1,0 +1,7 @@
+{
+  "jwt": "<redacted>",
+  "user": {
+    "email": "verify-pw@example.com",
+    "username": "username_0dfeaf48eafb"
+  }
+}

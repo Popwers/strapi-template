@@ -1,0 +1,20 @@
+{
+  "feature": "cors",
+  "baseUrl": "http://127.0.0.1:1341",
+  "commands": [
+    "verify-strapi http GET /api/users --header 'Origin: http://localhost:4321' --out-headers get-allowed.headers",
+    "verify-strapi http GET /api/users --header 'Origin: https://evil.example' --out-headers get-foreign.headers",
+    "verify-strapi http OPTIONS /api/auth/local --header 'Origin: http://localhost:4321' --header 'Access-Control-Request-Method: POST' --out-headers preflight-allowed.headers",
+    "CORS_ORIGINS=https://evil.example verify-strapi launch (relaunch: inherited value must not reach Strapi)",
+    "verify-strapi http OPTIONS /api/auth/local --header 'Origin: https://evil.example' --header 'Access-Control-Request-Method: POST' --out-headers preflight-foreign.headers",
+    "verify-strapi http GET /_health --header 'Origin: http://localhost:4321' --out-headers health-allowed-relaunch.headers",
+    "verify-strapi http GET /_health --header 'Origin: https://evil.example' --out-headers health-foreign-relaunch.headers"
+  ],
+  "checks": [
+    { "name": "allowed origin echoed with credentials", "header": "Access-Control-Allow-Origin: http://localhost:4321", "pass": true },
+    { "name": "foreign origin gets no Access-Control-Allow-Origin", "pass": true },
+    { "name": "allowed preflight lists methods and headers", "status": 204, "pass": true },
+    { "name": "foreign preflight has no Access-Control-Allow-Origin", "status": 200, "pass": true },
+    { "name": "inherited CORS_ORIGINS ignored by launch", "pass": true }
+  ]
+}
