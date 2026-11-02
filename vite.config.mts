@@ -160,5 +160,8 @@ export default defineConfig({
 		},
 		include: ['tests/**/*.test.ts'],
 		exclude: ['dist/**', 'node_modules/**'],
+		// Files share a worker's module graph. Safe here: no module mocks, and each Sentry test
+		// closes its client in `afterAll`, so nothing leaks from one file into the next.
+		isolate: false,
 	},
 });
