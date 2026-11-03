@@ -11,9 +11,9 @@ Type `make` for the list.
 | Install + hooks | `make install` | `vp i` then `make hooks` |
 | Git hooks only | `make hooks` | `vp config` |
 | Strapi develop | `make dev` | `vp run dev` → `strapi develop` |
-| Lint + fmt + types | `make check` | `vp check` |
+| Lint + fmt + types | `make check` | `vp check`, then `vp run typecheck` (`bun check --no-script`) |
 | Tests | `make test` | `vp test` |
-| Pre-push checks | `make verify` | `vp check` then `vp test run` |
+| Pre-push checks | `make verify` | `make check` then `vp test run` |
 | E2E (HTTP + admin) | `make e2e` | `vp run test:e2e:ci` → e2e without agent tests, `tests/e2e/` |
 | E2E incl. agent test | `vp run test:e2e` | `e2e run`, needs `npx e2e login spacexai` |
 | Admin + server build | `make build` | `vp run build` → `strapi build` |
@@ -22,7 +22,13 @@ Type `make` for the list.
 
 API: `http://localhost:1337`. Admin: `http://localhost:1337/admin`.
 
-Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` points Git at `.vite-hooks/`. Commit runs `vp staged` (`vp check --fix`). Push runs `.vite-hooks/pre-push` (see Checks).
+Default branch is `master`. Conventional commits via `cz` / `ga`. `vp config` points Git at `.vite-hooks/`. Commit runs `vp staged` (`vp check --fix` and `vp run typecheck`). Push runs `.vite-hooks/pre-push` (see Checks).
+
+## Tests share a worker
+
+Test files run with `isolate: false`, so one worker runs several files on one module registry. `tests/support/setup.ts` (`test.setupFiles`) runs after each file's own teardown and resets real timers, mocks, `vi.stubGlobal` and `vi.stubEnv` values, and the module registry. A test still restores what that does not cover. That means `process.env` keys assigned directly, globals assigned directly instead of `vi.stubGlobal`, and the Sentry clients a test opens (close them in `afterAll`, as `sentry-noise.test.ts` does). Tests import `bun:test`, aliased to `vitest`, so write code that works under both.
+
+The type check is `bun check --no-script`, run by `vp run typecheck` for the root project, `tests/e2e` and `vite.config.mts`. `vp check` no longer type-checks (`lint.options.typeCheck` is `false`).
 
 ## E2E
 

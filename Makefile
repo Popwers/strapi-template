@@ -14,13 +14,14 @@ install: ## Install npm deps via vp and Git hooks
 hooks: ## (Re)install Git hooks (vp config)
 	@vp config >/dev/null
 
-check: ## Run vp check (lint + fmt + typecheck)
+check: ## Lint + fmt (vp check), then typecheck (bun check, see the typecheck script)
 	@vp check
+	@vp run typecheck
 
 test: ## Run the Vitest suite
 	@vp test
 
-verify: check ## Run the pre-push checks without e2e: vp check, then the Vitest suite once
+verify: check ## Run the pre-push checks without e2e: make check, then the Vitest suite once
 	@vp test run
 
 e2e: ## Run the e2e suite (needs Docker; builds Strapi, throwaway Postgres on :5447, app on :1347)

@@ -116,7 +116,8 @@ export default defineConfig({
 		jsPlugins: [{ name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' }],
 		options: {
 			typeAware: true,
-			typeCheck: true,
+			// Type checking runs in `vp run typecheck` (`bun check --no-script`), not here.
+			typeCheck: false,
 		},
 		// Curated overrides on top of oxlint `recommended`; keep the set tight.
 		rules: {
@@ -149,6 +150,8 @@ export default defineConfig({
 	// Run on staged files at commit time. Hook is installed once with `vp config`.
 	staged: {
 		'*.{js,jsx,ts,tsx,vue,svelte,astro,json,css,scss,html,md}': 'vp check --fix',
+		// The whole project is type-checked, whatever the staged files are.
+		'*.{js,jsx,ts,tsx,mts}': () => 'vp run typecheck',
 		'*.{js,jsx,ts,tsx}': 'react-doctor --no-telemetry --no-supply-chain --blocking warning',
 	},
 
@@ -160,8 +163,9 @@ export default defineConfig({
 		},
 		include: ['tests/**/*.test.ts'],
 		exclude: ['dist/**', 'node_modules/**'],
-		// Files share a worker's module graph. Safe here: no module mocks, and each Sentry test
-		// closes its client in `afterAll`, so nothing leaks from one file into the next.
+		// Files share a worker's module graph. tests/support/setup.ts resets timers, mocks, stubs and
+		// modules after each file, and each Sentry test closes its client in `afterAll`.
 		isolate: false,
+		setupFiles: ['./tests/support/setup.ts'],
 	},
 });
