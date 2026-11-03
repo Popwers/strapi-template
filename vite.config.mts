@@ -116,8 +116,7 @@ export default defineConfig({
 		jsPlugins: [{ name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' }],
 		options: {
 			typeAware: true,
-			// Type checking runs in `vp run typecheck` (`bun check --no-script`), not here.
-			typeCheck: false,
+			typeCheck: true,
 		},
 		// Curated overrides on top of oxlint `recommended`; keep the set tight.
 		rules: {
@@ -150,8 +149,6 @@ export default defineConfig({
 	// Run on staged files at commit time. Hook is installed once with `vp config`.
 	staged: {
 		'*.{js,jsx,ts,tsx,vue,svelte,astro,json,css,scss,html,md}': 'vp check --fix',
-		// The whole project is type-checked, whatever the staged files are.
-		'*.{js,jsx,ts,tsx,mts}': () => 'vp run typecheck',
 		'*.{js,jsx,ts,tsx}': 'react-doctor --no-telemetry --no-supply-chain --blocking warning',
 	},
 
