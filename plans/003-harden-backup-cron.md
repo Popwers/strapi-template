@@ -72,7 +72,7 @@ const dbBackup = fs.readFileSync(DB_BACKUP_FILE);
 | Purpose   | Command                                              | Expected on success |
 |-----------|------------------------------------------------------|---------------------|
 | Add dep   | `npm install @aws-sdk/lib-storage`                   | exit 0              |
-| Typecheck | `./node_modules/.bin/tsc -p tsconfig.json --noEmit`  | exit 0              |
+| Typecheck | `bun check --no-script -p tsconfig.json`             | exit 0              |
 | Build     | `npm run build`                                      | exit 0              |
 | Lint/fmt  | `vp check`                                           | exit 0              |
 
@@ -162,7 +162,7 @@ const BACKUP_FILE = encryptionKey ? `${EXPORT_FILE_NAME}.tar.gz.enc` : `${EXPORT
 
 (`BACKUP_FILE` is currently computed at line 38 before the key check — move/derive it after `encryptionKey` is read, and make sure the `finally` cleanup uses the same derived name.)
 
-**Verify**: `grep -n 'execSync\|execFileSync' src/index.ts` → no matches; `./node_modules/.bin/tsc -p tsconfig.json --noEmit` → exit 0.
+**Verify**: `grep -n 'execSync\|execFileSync' src/index.ts` → no matches; `bun check --no-script -p tsconfig.json` → exit 0.
 
 ### Step 4: Stream the uploads instead of buffering
 
@@ -190,7 +190,7 @@ await Promise.all([
 
 Remove the now-unused `PutObjectCommand` import (keep `S3Client`).
 
-**Verify**: `grep -n 'readFileSync\|PutObjectCommand' src/index.ts` → no matches; `tsc --noEmit` → exit 0.
+**Verify**: `grep -n 'readFileSync\|PutObjectCommand' src/index.ts` → no matches; `bun check --no-script` → exit 0.
 
 ### Step 5: Hoist the S3 client out of the task
 
@@ -216,7 +216,7 @@ Machine-checkable. ALL must hold:
 
 - [ ] `grep -n 'execSync\|execFileSync\|readFileSync\|PutObjectCommand\|NODE_ENV\|name-of-your-company' src/index.ts` → zero matches
 - [ ] `grep -n 'BACKUP_ENABLED\|BACKUP_FILE_PREFIX\|BACKUP_ENCRYPTION_KEY' .env.example` → three matches
-- [ ] `./node_modules/.bin/tsc -p tsconfig.json --noEmit` exits 0
+- [ ] `bun check --no-script -p tsconfig.json` exits 0
 - [ ] `vp check` exits 0; `npm run build` exits 0
 - [ ] `git status` shows only in-scope files modified
 - [ ] `plans/README.md` status row updated
