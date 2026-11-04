@@ -39,6 +39,31 @@ test(
 	},
 );
 
+test('replaces an earlier avatar and deletes its file', { session: ROLES }, async ({ app }) => {
+	const user = await registerUser(app);
+	const uploadAvatar = () =>
+		api(app, '/api/users/avatar', {
+			method: 'POST',
+			headers: bearer(user.jwt),
+			body: avatarForm('files.avatar'),
+		});
+	const currentAvatarUrl = async (): Promise<string> => {
+		const me = await api(app, '/api/users/me?populate=avatar', { headers: bearer(user.jwt) });
+		const body: UserWithAvatar = await me.json();
+		if (!body.avatar) throw new Error('user has no avatar after upload');
+		return body.avatar.url;
+	};
+
+	expect((await uploadAvatar()).status).toBe(200);
+	const firstUrl = await currentAvatarUrl();
+	expect((await uploadAvatar()).status).toBe(200);
+	const secondUrl = await currentAvatarUrl();
+
+	expect(secondUrl).not.toBe(firstUrl);
+	expect((await api(app, secondUrl)).status).toBe(200);
+	expect((await api(app, firstUrl)).status).toBe(404);
+});
+
 test('rejects a file field that is not under files.', { session: ROLES }, async ({ app }) => {
 	const user = await registerUser(app);
 

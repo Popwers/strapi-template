@@ -35,17 +35,36 @@ export function isIssuedBeforePasswordChange(
 
 /**
  * Stamps `passwordChangedAt` on every write that sets a password: reset, change, `PUT /users/:id`
- * and the admin Content Manager all go through the user query, so one database lifecycle covers them.
+ * and the admin Content Manager all update the user through the Document Service, so one middleware
+ * covers them. Not a database lifecycle: the backup's Strapi export turns lifecycles off server-wide
+ * while it runs, and a password changed then would leave the earlier tokens valid.
  * @param strapi - The running Strapi instance.
  */
 export function stampPasswordChanges(strapi: Core.Strapi): void {
-	strapi.db.lifecycles.subscribe({
-		models: [USER_UID],
-		beforeUpdate(event) {
-			const { data } = event.params;
-			if (data?.password) data.passwordChangedAt = new Date();
-		},
+	strapi.documents.use(async (context, next) => {
+		if (context.uid === USER_UID && context.action === 'update') {
+			const { data } = context.params;
+			if (isPasswordWrite(data)) data.passwordChangedAt = new Date();
+		}
+		return next();
 	});
+}
+
+/** The fields of a user update the stamp reads and writes. */
+interface PasswordWrite {
+	password: string;
+	passwordChangedAt?: Date;
+}
+
+/**
+ * Whether a Document Service update sets a non-empty password. The generated content types are not
+ * committed, so the user's `data` carries the generic content-type input and needs this check.
+ * @param data - The update's `data`.
+ * @returns True when the update sets a password.
+ */
+function isPasswordWrite<Data>(data: Data): data is Data & PasswordWrite {
+	if (data === null || typeof data !== 'object' || !('password' in data)) return false;
+	return typeof data.password === 'string' && data.password !== '';
 }
 
 /**
