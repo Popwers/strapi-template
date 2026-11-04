@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/Popwers/strapi-template/compare/v1.2.1...v1.2.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* stamp password changes outside DB lifecycles, and cut avatar upload round-trips ([#39](https://github.com/Popwers/strapi-template/issues/39)) ([0d1f350](https://github.com/Popwers/strapi-template/commit/0d1f3502b06623787a28290aa6baaeae89b21ede))
+
 ## [1.2.1](https://github.com/Popwers/strapi-template/compare/v1.2.0...v1.2.1) (2026-10-30)
 
 
