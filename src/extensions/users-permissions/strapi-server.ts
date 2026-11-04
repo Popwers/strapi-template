@@ -87,32 +87,31 @@ export default async (plugin) => {
 			if (files && 'avatar' in files) {
 				const uploadService = strapi.plugin('upload').service('upload');
 				const uploadFolderService = strapi.plugin('upload').service('api-upload-folder');
-				const apiUploadFolder = await uploadFolderService.getAPIUploadFolder();
+				// The folder and the user row are independent reads: one round-trip instead of two.
+				const [apiUploadFolder, userData] = await Promise.all([
+					uploadFolderService.getAPIUploadFolder(),
+					strapi.query('plugin::users-permissions.user').findOne({
+						where: { documentId: authUser.documentId },
+						populate: ['avatar'],
+					}),
+				]);
 
 				if (!uploadService || !uploadFolderService || !apiUploadFolder) {
 					return ctx.badRequest('Upload service not found');
 				}
 
-				const userData = await strapi.query('plugin::users-permissions.user').findOne({
-					where: { documentId: authUser.documentId },
-					populate: ['avatar'],
-				});
-
 				if (!userData) {
 					return ctx.badRequest('User not found');
 				}
 
-				if (userData?.avatar?.documentId) {
-					const oldMedia = await strapi.query('plugin::upload.file').findOne({
-						where: { documentId: userData.avatar.documentId },
-					});
+				// `populate` already loaded the whole file row `remove` needs; no second lookup.
+				// The removal stays before the upload: a failed removal must not leave a new avatar.
+				const oldMedia = userData.avatar;
+				if (oldMedia) {
+					const removedOldMedia = await uploadService.remove(oldMedia);
 
-					if (oldMedia) {
-						const removedOldMedia = await uploadService.remove(oldMedia);
-
-						if (!removedOldMedia) {
-							return ctx.badRequest('Failed to remove old avatar');
-						}
+					if (!removedOldMedia) {
+						return ctx.badRequest('Failed to remove old avatar');
 					}
 				}
 
