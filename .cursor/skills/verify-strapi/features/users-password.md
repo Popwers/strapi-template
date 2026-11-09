@@ -1,6 +1,6 @@
 # Users password
 
-Users password lets a signed-in end user change their password. The change signs that user out everywhere else: every JWT issued before it gets 401, while the token the change returns keeps working.
+Users password lets a signed-in end user change their password, and an administrator set it from the admin Content Manager. The change signs that user out everywhere else: every JWT issued in an earlier second gets 401, while the token the change returns keeps working.
 
 ## Sub-features
 
@@ -8,12 +8,15 @@ Users password lets a signed-in end user change their password. The change signs
 - `password-wrong-current` refuses a wrong `currentPassword` with 400 and leaves the old JWT valid.
 - `password-revoke` returns 401 on `GET /api/users/me` for a JWT issued in an earlier second than the change.
 - `password-put-revoke` does the same when the owner sends `password` through `PUT /api/users/<id>`, which returns no new token.
+- `password-admin-revoke` does the same when an administrator sets the user's password in the admin Content Manager. An admin edit without `password` keeps the user's JWTs valid.
+- `password-same` refuses a new password equal to the current one with 400.
 - `password-hidden` keeps the change timestamp out of `GET /api/users/me`.
 
 ## How to get to it (user POV)
 
 - A consuming front-end's "change password" form that posts to `/api/auth/change-password` with the user's JWT.
 - An account page that sends `password` in `PUT /api/users/<id>`.
+- An administrator editing the user's Password field in the admin Content Manager (`PUT /content-manager/collection-types/plugin::users-permissions.user/<documentId>` with an admin bearer).
 - The "forgot password" flow (`POST /api/auth/forgot-password`, then `POST /api/auth/reset-password` with the emailed code). Driving it needs that code; see Gotchas.
 
 ## Driving it with verify-strapi
@@ -24,14 +27,17 @@ Preconditions:
 - The Authenticated role still allows `auth.changePassword` (true on a fresh database).
 - A disposable user registered by this run (see [Users register](./users-register.md)), for example `verify-pw@example.com` / `VerifyUser1!`, with its JWT as `<jwt1>` and numeric `user.id`.
 - For the PUT variant only: `user.update` granted as in [Users update](./users-update.md).
+- For the admin variant only: an admin `data.token` from [Admin login](./admin-login.md).
 
 - **Wait.** Run `sleep 1.2` after the register. A JWT issued in the same second as the change is not revoked.
 - **Wrong current password.** Run `verify-strapi http POST /api/auth/change-password --header "Authorization: Bearer <jwt1>" --json '{"currentPassword":"WrongPass1!","password":"VerifyUser2!","passwordConfirmation":"VerifyUser2!"}'`. Status is `400` and `error.message` is `The provided current password is invalid`. `GET /api/users/me` with `<jwt1>` is still `200`.
+- **Same password.** Run the same POST with `"currentPassword":"VerifyUser1!"` and `VerifyUser1!` as the new password. Status is `400` and `error.message` is `Your new password must be different than your current password`.
 - **Change.** Run the same POST with `"currentPassword":"VerifyUser1!"`. Status is `200` with a new `jwt` (`<jwt2>`) and the `user` object.
 - **Old token revoked.** Run `verify-strapi http GET /api/users/me --header "Authorization: Bearer <jwt1>"`. Status is `401` (`Missing or invalid credentials`).
 - **New token works.** Run the same GET with `<jwt2>`. Status is `200` and the body has no `passwordChangedAt`.
 - **Old password refused.** Run `verify-strapi http POST /api/auth/local --json '{"identifier":"verify-pw@example.com","password":"VerifyUser1!"}'`. Status is `400`.
 - **PUT variant.** After `sleep 1.2`, run `verify-strapi http PUT /api/users/<id> --header "Authorization: Bearer <jwt2>" --json '{"password":"VerifyUser3!"}'`. Status is `200` and the body has no `jwt`. `GET /api/users/me` with `<jwt2>` is now `401`. `POST /api/auth/local` with `VerifyUser3!` is `200` and its JWT reads `/api/users/me`.
+- **Admin variant.** After `sleep 1.2`, run `verify-strapi http PUT '/content-manager/collection-types/plugin::users-permissions.user/<documentId>' --header "Authorization: Bearer <admin token>" --json '{"password":"VerifyUser4!"}'`. Status is `200`. The JWT from the `VerifyUser3!` login now gets `401` on `GET /api/users/me`, and `POST /api/auth/local` with `VerifyUser4!` is `200`. After another `sleep 1.2`, the same PUT with `{"username":"cm_renamed"}` and no `password` is `200`, and the new JWT still reads `/api/users/me`.
 - **Proof.** Save every status, the redacted change response, both `/api/users/me` reads, and `manifest.json` under `proof/users-password/`. Redact JWTs.
 
 ## Gotchas

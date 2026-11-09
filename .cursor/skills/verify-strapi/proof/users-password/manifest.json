@@ -5,6 +5,7 @@
     "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-pw@example.com\",\"password\":\"VerifyUser1!\"}'",
     "sleep 1.2",
     "verify-strapi http POST /api/auth/change-password --header 'Authorization: Bearer <jwt1>' --json '{\"currentPassword\":\"WrongPass1!\",...}'",
+    "verify-strapi http POST /api/auth/change-password --header 'Authorization: Bearer <jwt1>' --json '{\"currentPassword\":\"VerifyUser1!\",\"password\":\"VerifyUser1!\",...}'",
     "verify-strapi http POST /api/auth/change-password --header 'Authorization: Bearer <jwt1>' --json '{\"currentPassword\":\"VerifyUser1!\",\"password\":\"VerifyUser2!\",\"passwordConfirmation\":\"VerifyUser2!\"}'",
     "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt1>'",
     "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt2>'",
@@ -12,18 +13,88 @@
     "sleep 1.2",
     "verify-strapi http PUT /api/users/<id> --header 'Authorization: Bearer <jwt2>' --json '{\"password\":\"VerifyUser3!\"}'",
     "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt2>'",
-    "verify-strapi http POST /api/auth/local --json '{\"identifier\":\"verify-pw@example.com\",\"password\":\"VerifyUser3!\"}'"
+    "verify-strapi http POST /api/auth/local --json '{\"identifier\":\"verify-pw@example.com\",\"password\":\"VerifyUser3!\"}'",
+    "sleep 1.2",
+    "verify-strapi http PUT '/content-manager/collection-types/plugin::users-permissions.user/<documentId>' --header 'Authorization: Bearer <admin token>' --json '{\"password\":\"VerifyUser4!\"}'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt3>'",
+    "verify-strapi http POST /api/auth/local --json '{\"identifier\":\"verify-pw@example.com\",\"password\":\"VerifyUser4!\"}'",
+    "sleep 1.2",
+    "verify-strapi http PUT '/content-manager/collection-types/plugin::users-permissions.user/<documentId>' --header 'Authorization: Bearer <admin token>' --json '{\"username\":\"cm_renamed\"}'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt4>'"
   ],
   "checks": [
-    { "name": "register", "status": 200, "pass": true },
-    { "name": "change-password wrong current", "status": 400, "message": "The provided current password is invalid", "pass": true },
-    { "name": "jwt1 still valid after refused change", "status": 200, "pass": true },
-    { "name": "change-password ok returns new jwt", "status": 200, "pass": true },
-    { "name": "jwt1 after change", "status": 401, "pass": true },
-    { "name": "jwt2 after change", "status": 200, "passwordChangedAtExposed": false, "pass": true },
-    { "name": "login with old password", "status": 400, "pass": true },
-    { "name": "PUT /api/users/:id with password, no jwt returned", "status": 200, "pass": true },
-    { "name": "jwt2 after PUT password", "status": 401, "pass": true },
-    { "name": "login with new password", "status": 200, "pass": true }
+    {
+      "name": "wrong current",
+      "status": 400,
+      "message": "The provided current password is invalid",
+      "pass": true
+    },
+    {
+      "name": "jwt1 still valid after refused change",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "same password",
+      "status": 400,
+      "message": "Your new password must be different than your current password",
+      "pass": true
+    },
+    {
+      "name": "change returns new jwt",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "jwt1 after change",
+      "status": 401,
+      "pass": true
+    },
+    {
+      "name": "jwt2 after change",
+      "status": 200,
+      "passwordChangedAtExposed": false,
+      "pass": true
+    },
+    {
+      "name": "login with old password",
+      "status": 400,
+      "pass": true
+    },
+    {
+      "name": "PUT password returns no jwt",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "jwt2 after PUT password",
+      "status": 401,
+      "pass": true
+    },
+    {
+      "name": "login with VerifyUser3!",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "admin Content Manager password edit stamps passwordChangedAt",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "jwt3 after admin edit",
+      "status": 401,
+      "pass": true
+    },
+    {
+      "name": "login with VerifyUser4!",
+      "status": 200,
+      "pass": true
+    },
+    {
+      "name": "admin edit without password keeps jwt4",
+      "status": 200,
+      "pass": true
+    }
   ]
 }

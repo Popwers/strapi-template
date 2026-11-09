@@ -1,0 +1,9 @@
+{
+ "data": null,
+ "error": {
+  "status": 400,
+  "name": "ValidationError",
+  "message": "File type 'image/svg+xml' is not allowed",
+  "details": {}
+ }
+}

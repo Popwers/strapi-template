@@ -1,0 +1,29 @@
+{
+ "data": {
+  "token": "<redacted>",
+  "accessToken": "<redacted>",
+  "user": {
+   "id": 1,
+   "documentId": "ytlj63wox959tunr2952l2we",
+   "firstname": "Verify",
+   "lastname": null,
+   "username": null,
+   "email": "verify-admin@example.com",
+   "isActive": true,
+   "blocked": false,
+   "preferedLanguage": null,
+   "createdAt": "2026-11-09T08:45:09.381Z",
+   "updatedAt": "2026-11-09T08:45:09.381Z",
+   "publishedAt": "2026-11-09T08:45:09.381Z",
+   "locale": null,
+   "roles": [
+    {
+     "id": 1,
+     "name": "Super Admin",
+     "description": "Super Admins can access and manage all features and settings.",
+     "code": "strapi-super-admin"
+    }
+   ]
+  }
+ }
+}

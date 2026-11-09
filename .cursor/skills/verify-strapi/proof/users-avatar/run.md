@@ -1,13 +1,4 @@
-# users-avatar proof
+# users-avatar run
 
-## Checks
-
-- PASS: anonymous 403 (403)
-- PASS: before grant 403 (403)
-- PASS: grant ok (200)
-- PASS: upload 200 (200)
-- PASS: bare field 400 (400)
-- PASS: populate avatar (qu66cmwh2o6kveun59ytwcmz)
-- PASS: me omits avatar (['id', 'documentId', 'username', 'email', 'provider', 'confirmed', 'blocked', 'createdAt', 'updatedAt', 'publishedAt'])
-- PASS: replaced documentId (qu66cmwh2o6kveun59ytwcmz->n2dk41sa64koukz32n2kw6ai)
-- PASS: previous upload removed (2->2)
+Date: 2026-11-09. Isolated launch on 127.0.0.1:1341, fresh database, grant applied with the full permissions object. The svg and txt checks record the product gap (allowlist skipped on this route); the png avatar was restored afterwards and uploads were deleted.
+All checks in manifest.json passed. Tokens, JWTs and cookies are redacted.

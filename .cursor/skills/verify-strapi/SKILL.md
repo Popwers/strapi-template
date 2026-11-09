@@ -103,7 +103,7 @@ Stable handles from this repo:
 | Extra register keys | `role`, `provider`, and a client `username` are dropped. The POST still returns 200 and a generated username. It does not return 400 |
 | Avatar | `POST /api/users/avatar` multipart field `files.avatar`. Anonymous and ungranted calls are 403 until the Authenticated role has `user.updateAvatar` |
 | Profile update | `PUT /api/users/:id` (numeric id). Owner may change `username`. `blocked`, `role`, `provider`, `confirmed`, and `passwordChangedAt` are stripped. Other users and anonymous callers get 403 |
-| Password change | `POST /api/auth/change-password` (granted to Authenticated on a fresh database) returns a new `jwt`; every JWT issued in an earlier second then gets 401. A `password` sent through `PUT /api/users/:id` does the same and returns no token |
+| Password change | `POST /api/auth/change-password` (granted to Authenticated on a fresh database) returns a new `jwt`; every JWT issued in an earlier second then gets 401. A `password` sent through `PUT /api/users/:id` does the same and returns no token. So does an admin Content Manager edit of the user's password |
 | CORS | `Access-Control-Allow-Origin` is echoed only for an origin in `CORS_ORIGINS` (unset: `http://localhost:4321`). A foreign `Origin` gets no such header. Read headers with `--out-headers` |
 | User content-type label | Content-Manager display name `Utilisateur` |
 | Admin locales | `fr`, `fr-FR`, `en` (`src/admin/app.tsx`) |

@@ -1,9 +1,9 @@
 {
-  "data": null,
-  "error": {
-    "status": 403,
-    "name": "ForbiddenError",
-    "message": "Forbidden",
-    "details": {}
-  }
+ "data": null,
+ "error": {
+  "status": 403,
+  "name": "ForbiddenError",
+  "message": "Forbidden",
+  "details": {}
+ }
 }

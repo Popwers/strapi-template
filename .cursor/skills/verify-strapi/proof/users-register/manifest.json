@@ -2,40 +2,50 @@
   "feature": "users-register",
   "baseUrl": "http://127.0.0.1:1341",
   "commands": [
-    "verify-strapi http POST /api/auth/local/register",
-    "verify-strapi http GET /api/users/me --header Authorization"
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-user@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-user-2@example.com\",\"password\":\"VerifyUser1!\",\"username\":\"i-picked-this\"}'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"evil@example.com\",\"password\":\"VerifyUser1!\",\"role\":1}'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"prov@example.com\",\"password\":\"VerifyUser1!\",\"provider\":\"local\"}'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-user@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"Verify-Upper@Example.com\",\"password\":\"VerifyUser1!\"}'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt>'"
   ],
   "checks": [
     {
-      "ok": true,
-      "label": "register email",
-      "detail": "username_59354096c863"
+      "name": "happy path",
+      "status": 200,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "username ignored",
-      "detail": "username_866766c4b4f1"
+      "name": "client username ignored",
+      "status": 200,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "role ignored",
-      "detail": "200"
+      "name": "role ignored",
+      "status": 200,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "provider ignored",
-      "detail": "200"
+      "name": "provider ignored",
+      "status": 200,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "me matches",
-      "detail": "username_59354096c863"
+      "name": "duplicate email",
+      "status": 400,
+      "message": "Email or Username are already taken",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "me without token 403",
-      "detail": "403"
+      "name": "email lowercased",
+      "email": "verify-upper@example.com",
+      "pass": true
+    },
+    {
+      "name": "users/me matches first register",
+      "status": 200,
+      "pass": true
     }
-  ],
-  "ok": true
+  ]
 }

@@ -2,56 +2,84 @@
   "feature": "users-avatar",
   "baseUrl": "http://127.0.0.1:1341",
   "commands": [
-    "verify-strapi http POST /api/users/avatar --form files.avatar",
-    "verify-strapi http PUT /users-permissions/roles/:id",
-    "verify-strapi http GET /api/users/me?populate=avatar --header Authorization"
+    "verify-strapi http POST /api/users/avatar --form 'files.avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'",
+    "verify-strapi http PUT /users-permissions/roles/1 --header 'Authorization: Bearer <admin token>' --json '<role with user.updateAvatar and user.update enabled>'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'",
+    "verify-strapi http GET '/api/users/me?populate=avatar' --header 'Authorization: Bearer <jwt>'",
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt>'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@.cursor/skills/verify-strapi/fixtures/avatar.png'",
+    "verify-strapi http GET <first avatar url>",
+    "verify-strapi http POST /upload --header 'Authorization: Bearer <admin token>' --form 'files=@bad.svg'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@bad.svg'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@note.txt'"
   ],
   "checks": [
     {
-      "ok": true,
-      "label": "anonymous 403",
-      "detail": "403"
+      "name": "anonymous",
+      "status": 403,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "before grant 403",
-      "detail": "403"
+      "name": "before grant",
+      "status": 403,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "grant ok",
-      "detail": "200"
+      "name": "grant",
+      "status": 200,
+      "body": {
+        "ok": true
+      },
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "upload 200",
-      "detail": "200"
+      "name": "upload",
+      "status": 200,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "bare field 400",
-      "detail": "400"
+      "name": "populate avatar",
+      "documentId": "jb3qnkbfkzpglxlps00pa9l5",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "populate avatar",
-      "detail": "qu66cmwh2o6kveun59ytwcmz"
+      "name": "me omits avatar",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "me omits avatar",
-      "detail": "['id', 'documentId', 'username', 'email', 'provider', 'confirmed', 'blocked', 'createdAt', 'updatedAt', 'publishedAt']"
+      "name": "wrong field",
+      "status": 400,
+      "message": "No avatar provided",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "replaced documentId",
-      "detail": "qu66cmwh2o6kveun59ytwcmz->n2dk41sa64koukz32n2kw6ai"
+      "name": "replace",
+      "from": "jb3qnkbfkzpglxlps00pa9l5",
+      "to": "etgrfwx8he97g9htn0lg7qca",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "previous upload removed",
-      "detail": "2->2"
+      "name": "first file gone",
+      "status": 404,
+      "pass": true
+    },
+    {
+      "name": "POST /upload refuses svg",
+      "status": 400,
+      "message": "File type 'image/svg+xml' is not allowed",
+      "pass": true
+    },
+    {
+      "name": "product gap: avatar route stores svg",
+      "mime": "image/svg+xml",
+      "pass": true
+    },
+    {
+      "name": "product gap: avatar route stores txt",
+      "mime": "text/plain",
+      "pass": true
     }
-  ],
-  "ok": true
+  ]
 }
