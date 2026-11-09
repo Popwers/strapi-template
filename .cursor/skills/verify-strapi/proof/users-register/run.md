@@ -1,10 +1,4 @@
-# users-register proof
+# users-register run
 
-## Checks
-
-- PASS: register email (username_59354096c863)
-- PASS: username ignored (username_866766c4b4f1)
-- PASS: role ignored (200)
-- PASS: provider ignored (200)
-- PASS: me matches (username_59354096c863)
-- PASS: me without token 403 (403)
+Date: 2026-11-09. Isolated launch on 127.0.0.1:1341, fresh database, Public role defaults.
+All checks in manifest.json passed. Tokens, JWTs and cookies are redacted.

@@ -1,0 +1,15 @@
+{
+ "jwt": "<redacted>",
+ "user": {
+  "id": 2,
+  "documentId": "oy6vjr99vj4enj0dcunvc8a6",
+  "username": "username_6aa886c05614",
+  "email": "verify-user-2@example.com",
+  "provider": "local",
+  "confirmed": true,
+  "blocked": false,
+  "createdAt": "2026-11-09T08:47:33.653Z",
+  "updatedAt": "2026-11-09T08:47:33.653Z",
+  "publishedAt": "2026-11-09T08:47:33.587Z"
+ }
+}

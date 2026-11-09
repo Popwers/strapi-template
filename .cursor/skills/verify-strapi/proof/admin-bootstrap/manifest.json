@@ -4,36 +4,46 @@
   "commands": [
     "verify-strapi http GET /admin/init",
     "verify-strapi screenshot --path proof/admin-bootstrap/wizard.png --url /admin",
-    "verify-strapi http POST /admin/register-admin",
+    "verify-strapi http POST /admin/register-admin --json '{\"email\":\"verify-admin@example.com\",\"password\":\"VerifyAdmin1!\",\"firstname\":\"Verify\"}'",
     "verify-strapi http GET /admin/init",
-    "verify-strapi http POST /admin/register-admin (second)"
+    "verify-strapi http POST /admin/register-admin --json '{\"email\":\"second@example.com\",\"password\":\"VerifyAdmin1!\",\"firstname\":\"Second\",\"lastname\":\"Admin\"}'"
   ],
   "checks": [
     {
-      "ok": true,
-      "label": "hasAdmin false before",
-      "detail": "False"
+      "name": "init before",
+      "hasAdmin": false,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "register-admin 200",
-      "detail": "200"
+      "name": "register-admin without lastname",
+      "status": 200,
+      "keys": [
+        "accessToken",
+        "token",
+        "user"
+      ],
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "hasAdmin true after",
-      "detail": "True"
+      "name": "refresh cookie set",
+      "cookie": "strapi_admin_refresh; path=/admin; samesite=lax; httponly",
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "second register-admin 400",
-      "detail": "400"
+      "name": "init after",
+      "hasAdmin": true,
+      "pass": true
     },
     {
-      "ok": true,
-      "label": "wizard.png",
-      "detail": "bytes"
+      "name": "second register-admin",
+      "status": 400,
+      "message": "You cannot register a new super admin",
+      "pass": true
+    },
+    {
+      "name": "wizard painted",
+      "file": "wizard.png",
+      "pass": true
     }
-  ],
-  "ok": true
+  ]
 }

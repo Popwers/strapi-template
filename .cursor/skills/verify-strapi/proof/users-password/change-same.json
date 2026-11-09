@@ -1,0 +1,9 @@
+{
+ "data": null,
+ "error": {
+  "status": 400,
+  "name": "ValidationError",
+  "message": "Your new password must be different than your current password",
+  "details": {}
+ }
+}

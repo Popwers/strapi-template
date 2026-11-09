@@ -34,7 +34,7 @@ Preconditions:
 ## Gotchas
 
 - The multipart field name must be `files.avatar`. `avatar` alone is `No avatar provided` only after `user.updateAvatar` is granted. Before the grant every POST is 403, including a bad field name.
-- The upload plugin allows jpeg, png, webp, pdf, zip, csv, and plain text (`config/upload-limits.ts`). SVG and HTML are not in that list. This recipe proves a png. The user schema restricts the `avatar` media field to images.
+- The upload plugin allows jpeg, png, webp, pdf, zip, csv, and plain text (`config/upload-limits.ts`). SVG and HTML are not in that list, and `POST /upload` refuses an SVG with `400` `File type 'image/svg+xml' is not allowed`. This avatar route does not apply that list or the image-only `avatar` field: on 2026-11-09 it stored an SVG (served back as `image/svg+xml`) and a `.txt` as the avatar with `200`. That is a product gap, not a recipe step. This recipe proves a png, and a refused type is not proof of the allowlist on this route.
 - Size cap is 15 MB. A larger fixture is not a proof of the happy path.
 - Anonymous 403 is the permission check, not `verified-unreachable`. `verified-unreachable` applies only when the admin grant itself cannot be performed.
 - `verify-strapi http` sends multipart with `--form` and the JWT with `--header`. Do not combine `--form` and `--json`.

@@ -1,7 +1,15 @@
 {
-  "jwt": "<redacted>",
-  "user": {
-    "email": "verify-pw@example.com",
-    "username": "username_0dfeaf48eafb"
-  }
+ "jwt": "<redacted>",
+ "user": {
+  "id": 6,
+  "documentId": "z7f71zwpqzr9nznfctwjp2bc",
+  "username": "username_2bd5023ee464",
+  "email": "verify-pw@example.com",
+  "provider": "local",
+  "confirmed": true,
+  "blocked": false,
+  "createdAt": "2026-11-09T09:00:10.580Z",
+  "updatedAt": "2026-11-09T09:00:10.580Z",
+  "publishedAt": "2026-11-09T09:00:10.510Z"
+ }
 }
