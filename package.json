@@ -16,7 +16,7 @@
     "test:e2e:ci": "e2e run --exclude-tag agent --reporter list,junit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/client-s3": "^3.1164.0",
     "@strapi/data-transfer": "5.61.0",
     "@strapi/plugin-sentry": "5.61.0",
     "@strapi/plugin-users-permissions": "5.61.0",
@@ -31,20 +31,20 @@
     "styled-components": "^6.6.0"
   },
   "devDependencies": {
-    "@ai-sdk/xai": "^5.0.35",
-    "@e2e-dev/web": "^0.15.4",
+    "@ai-sdk/xai": "^5.0.40",
+    "@e2e-dev/web": "^0.15.5",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
     "@types/bun": "^1.4.4",
     "@types/node": "^26",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "ai": "^7.0.159",
+    "ai": "^7.0.166",
     "e2e": "^0.22.0",
     "react-doctor": "^0.9.22",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
-    "vite-plus": "^1.4.0"
+    "vite-plus": "^1.5.0"
   },
   "author": {
     "name": "Lionel Bataille"
@@ -79,5 +79,5 @@
       ]
     ]
   },
-  "packageManager": "npm@12.2.1"
+  "packageManager": "npm@12.2.2"
 }
