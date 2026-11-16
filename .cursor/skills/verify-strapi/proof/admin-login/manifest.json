@@ -4,7 +4,9 @@
   "commands": [
     "verify-strapi http POST /admin/login (wrong password)",
     "verify-strapi http POST /admin/login",
-    "verify-strapi http GET /admin/users/me --header Authorization"
+    "verify-strapi http GET /admin/users/me --header Authorization",
+    "verify-strapi http POST /admin/login --json '{\"email\":\"nobody@example.com\",\"password\":\"WrongPass1!\"}' (x6)",
+    "verify-strapi http POST /admin/login --json '{\"email\":\"verify-admin@example.com\",\"password\":\"<password>\"}'"
   ],
   "checks": [
     {
@@ -26,6 +28,17 @@
       "ok": true,
       "label": "login.png",
       "detail": "bytes"
+    },
+    {
+      "name": "sixth login for one email in 5 minutes",
+      "status": 429,
+      "message": "Too many requests, please try again later.",
+      "pass": true
+    },
+    {
+      "name": "other email not limited",
+      "status": 200,
+      "pass": true
     }
   ],
   "ok": true

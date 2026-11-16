@@ -36,4 +36,5 @@ Preconditions:
 - `config/admin.ts` only sets session lifespans (30 days refresh, 24 hours session). It does not name the cookie.
 - Headless Chrome without a French `Accept-Language` paints English (`Login`). `fr` is in `src/admin/app.tsx` locales; switch the locale before expecting `Se connecter`.
 - `data.token` expires 30 minutes after login (`exp - iat` is `1800`). After that, admin routes such as `PUT /users-permissions/roles/<id>` return 401. Log in again before the role grants in [Users avatar](./users-avatar.md) and [Users update](./users-update.md) if the token is older.
+- `POST /admin/login` allows 5 attempts per email per 5 minutes from one address, whatever the outcome. The sixth is `429` `Too many requests, please try again later.`. Another email is not affected. The recipe uses two attempts; a reused server that re-runs it can lock the operator email for 5 minutes.
 - Do not paste real operator passwords or tokens into proof files.
