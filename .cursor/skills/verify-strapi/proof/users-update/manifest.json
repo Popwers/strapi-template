@@ -3,7 +3,14 @@
   "baseUrl": "http://127.0.0.1:1341",
   "commands": [
     "verify-strapi http PUT /api/users/:id --header Authorization",
-    "verify-strapi http GET /api/users/me --header Authorization"
+    "verify-strapi http GET /api/users/me --header Authorization",
+    "verify-strapi http POST /users-permissions/roles --header 'Authorization: Bearer <admin token>' --json '{\"name\":\"Admin\",\"description\":\"...\",\"permissions\":<authenticated permissions>}'",
+    "verify-strapi http PUT '/content-manager/collection-types/plugin::users-permissions.user/<documentId>' --header 'Authorization: Bearer <admin token>' --json '{\"role\":{\"connect\":[{\"documentId\":\"<admin role documentId>\"}],\"disconnect\":[]}}'",
+    "verify-strapi http GET '/content-manager/relations/plugin::users-permissions.user/<documentId>/role' --header 'Authorization: Bearer <admin token>'",
+    "verify-strapi http PUT /users-permissions/advanced --header 'Authorization: Bearer <admin token>' --json '<settings with default_role admin>'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"roleadmin@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "verify-strapi http PUT /users-permissions/advanced --header 'Authorization: Bearer <admin token>' --json '<original settings, default_role authenticated>'",
+    "verify-strapi http PUT /api/users/<owner-id> --header 'Authorization: Bearer <admin-type jwt>' --json '{\"username\":\"set_by_admin_role\",\"blocked\":true}'"
   ],
   "checks": [
     {
@@ -40,6 +47,19 @@
       "ok": true,
       "label": "PUT /api/users/me is 403",
       "detail": "403"
+    },
+    {
+      "name": "content manager drops role: user stays Authenticated",
+      "status": 200,
+      "role": "Authenticated",
+      "pass": true
+    },
+    {
+      "name": "admin-type user updates another user",
+      "status": 200,
+      "username": "set_by_admin_role",
+      "blocked": false,
+      "pass": true
     }
   ],
   "ok": true

@@ -1,2 +1,2 @@
-HTTP/1.1 403 Forbidden
+HTTP/1.1 204 No Content
 Vary: Origin, Accept-Encoding
