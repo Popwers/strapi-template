@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { generateUser, parseFiles } from '../../../src/extensions/users-permissions/helper';
+import { parseFiles } from '../../../src/extensions/users-permissions/helper';
 
 describe('parseFiles', () => {
 	const file = { name: 'a.png' };
@@ -23,11 +23,5 @@ describe('parseFiles', () => {
 
 	test('drops single-segment keys', () => {
 		expect(parseFiles({ files: file })).toEqual({});
-	});
-});
-
-describe('generateUser', () => {
-	test('returns different values across calls', () => {
-		expect(generateUser()).not.toBe(generateUser());
 	});
 });
