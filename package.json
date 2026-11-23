@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "@ai-sdk/xai": "^5.0.46",
-    "@e2e-dev/web": "^0.16.0",
+    "@e2e-dev/web": "^0.16.1",
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
     "@types/bun": "^1.4.4",
@@ -40,7 +40,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "ai": "^7.0.173",
-    "e2e": "^0.23.1",
+    "e2e": "^0.24.0",
     "react-doctor": "^0.9.23",
     "semantic-release": "^25.0.9",
     "typescript": "^5",

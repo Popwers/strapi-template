@@ -19,15 +19,18 @@ export const ADMIN = 'admin';
 export const test = base
 	.extend<{ allowedPageErrors: RegExp[] }>({
 		// Zod 4 in the Strapi admin bundle probes `Function` and falls back when the CSP blocks it.
-		allowedPageErrors: async (_fixtures, use) => {
+		allowedPageErrors: async ({}, use) => {
 			await use([/^CSP script-src: eval /]);
 		},
 	})
 	.extend<{ pageErrorGuard: undefined }>({
-		pageErrorGuard: async ({ browser, allowedPageErrors }, use) => {
-			await use(undefined);
-			await expectNoPageErrors(browser, allowedPageErrors);
-		},
+		pageErrorGuard: [
+			async ({ browser, allowedPageErrors }, use) => {
+				await use(undefined);
+				await expectNoPageErrors(browser, allowedPageErrors);
+			},
+			{ auto: true },
+		],
 	});
 
 /**
