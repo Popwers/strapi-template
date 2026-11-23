@@ -1,3 +1,26 @@
+# [2.0.0](https://github.com/Popwers/strapi-template/compare/v1.2.2...v2.0.0) (2026-11-23)
+
+
+### chore
+
+* **deps:** mise à jour des dépendances 2026-11-16 ([#42](https://github.com/Popwers/strapi-template/issues/42)) ([4acefb1](https://github.com/Popwers/strapi-template/commit/4acefb1de07ccab804d4706accba32f5b777d216))
+
+
+### BREAKING CHANGES
+
+* **deps:** web({ headers, basicAuth }) now only reach the app origin. The suite sets neither, so no config change. Pulls playwright-core 1.65.0.
+
+* chore(deps): upgrade e2e 0.23 to 0.24 to match @e2e-dev/web 0.16.1
+
+@e2e-dev/web 0.16.1 needs e2e and @e2e-dev/core >=0.23.2, and e2e
+0.24.0 is the first release that satisfies it. With e2e 0.23.1 the
+peer is invalid and every tests/e2e file fails the typecheck.
+
+e2e 0.24 sets fixtures up on demand. allowedPageErrors now destructures
+an empty first parameter, as the runner requires, and pageErrorGuard is
+auto so the page error guard still runs for every browser test that
+does not name it.
+
 ## [1.2.2](https://github.com/Popwers/strapi-template/compare/v1.2.1...v1.2.2) (2026-11-04)
 
 
