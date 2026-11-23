@@ -8,7 +8,10 @@
     "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"prov@example.com\",\"password\":\"VerifyUser1!\",\"provider\":\"local\"}'",
     "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"verify-user@example.com\",\"password\":\"VerifyUser1!\"}'",
     "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"Verify-Upper@Example.com\",\"password\":\"VerifyUser1!\"}'",
-    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt>'"
+    "verify-strapi http GET /api/users/me --header 'Authorization: Bearer <jwt>'",
+    "verify-strapi http PUT /users-permissions/advanced --header 'Authorization: Bearer <admin token>' --json '<settings with allow_register false>'",
+    "verify-strapi http POST /api/auth/local/register --json '{\"email\":\"off@example.com\",\"password\":\"VerifyUser1!\"}'",
+    "verify-strapi http PUT /users-permissions/advanced --header 'Authorization: Bearer <admin token>' --json '<original settings>'"
   ],
   "checks": [
     {
@@ -45,6 +48,17 @@
     {
       "name": "users/me matches first register",
       "status": 200,
+      "pass": true
+    },
+    {
+      "name": "sign-ups disabled in advanced settings",
+      "status": 400,
+      "message": "Register action is currently disabled",
+      "pass": true
+    },
+    {
+      "name": "allow_register restored",
+      "allow_register": true,
       "pass": true
     }
   ]

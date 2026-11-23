@@ -33,7 +33,7 @@ Preconditions:
 ## Gotchas
 
 - `allowedFields` is `[]` in `config/plugins.ts`, but `auth.register` replaces the body first (`newUserWriteBody` keeps only `email`, `password`, and a generated `username`). Stock `Invalid parameters` does not run for `role` or `provider`.
-- Public `auth.register` can be turned off in the admin. If a body of only `email` and `password` is 403, report `verified-unreachable` with that permission missing — do not flip permissions on a shared CMS.
+- Registration can be turned off in the admin in two ways. Unticking `auth.register` on the Public role makes a body of only `email` and `password` 403. Turning off sign-ups in the users-permissions advanced settings (`allow_register` false) makes it `400` `Register action is currently disabled`. Either way, report `verified-unreachable` with that setting named. Do not flip it on a shared CMS.
 - Username uniqueness is off in the extended user schema; uniqueness is not the proof. The `username_` prefix is.
 - The email is stored lowercase: `Verify-Upper@Example.com` registers as `verify-upper@example.com`. Admin register-admin refuses a mixed-case email instead.
 - Do not register against production.

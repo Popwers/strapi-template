@@ -121,7 +121,7 @@ Default proof directory for a named drive:
 .cursor/skills/verify-strapi/proof/<feature-id>/
 ```
 
-Ad-hoc runs may also write `/tmp/verify-strapi/artifacts/<run-id>/`. Cleanup deletes scratch under `/tmp/verify-strapi/` except copies already placed in the skill `proof/` directory.
+Ad-hoc runs may also write `/tmp/verify-strapi/artifacts/<run-id>/`. Cleanup deletes scratch under `/tmp/verify-strapi/` except `strapi.log` and `postgres.log`, which stay until the next launch overwrites them. Copies already placed in the skill `proof/` directory are never touched.
 
 Every proof includes:
 
@@ -147,7 +147,7 @@ The first committed proof lives at `proof/root-redirect/`. Later runs may overwr
 .cursor/skills/verify-strapi/bin/verify-strapi cleanup
 ```
 
-Cleanup stops the Strapi PID and the native Postgres PID this launch started. It removes `/tmp/verify-strapi/state`, `run.env`, cookie jars, Chrome profiles, and `pgdata`. It never deletes `.cursor/skills/verify-strapi/proof/`.
+Cleanup stops the Strapi PID and the native Postgres PID this launch started. It removes `/tmp/verify-strapi/state`, `run.env`, cookie jars, Chrome profiles, and `pgdata`. It keeps `strapi.log` and `postgres.log` so a failed run can be read; the next launch overwrites them. It never deletes `.cursor/skills/verify-strapi/proof/`.
 
 If launch failed halfway, run cleanup anyway. The state file records whatever was started.
 
