@@ -44,7 +44,8 @@
     "react-doctor": "^0.9.23",
     "semantic-release": "^25.0.9",
     "typescript": "^5",
-    "vite-plus": "^1.6.0"
+    "vite": "^6.4.6",
+    "vite-plus": "1.7.0"
   },
   "author": {
     "name": "Lionel Bataille"
@@ -79,5 +80,8 @@
       ]
     ]
   },
-  "packageManager": "npm@12.2.2"
+  "packageManager": "npm@12.2.2",
+  "overrides": {
+    "rollup": "4.66.0"
+  }
 }

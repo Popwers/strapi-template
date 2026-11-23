@@ -42,7 +42,9 @@ usage() {
 verify-strapi <command>
 
 Commands:
-  launch [--port N] [--pg-port N] [--json]   Start isolated Postgres + strapi develop
+  launch [--port N] [--pg-port N] [--cors-origins LIST] [--json]
+                                             Start isolated Postgres + strapi develop.
+                                             --cors-origins sets the app's CORS_ORIGINS (else unset)
   doctor [--json]                            Read-only health check (exit 0 = driveable)
   http METHOD PATH [--no-follow] [--json '{}'] [--header 'K: V'] [--form 'field=@file'] [--out-body FILE] [--out-headers FILE]
                                              Request against the owned origin. --out-body / --out-headers keep the response body / headers.
@@ -284,7 +286,7 @@ wait_ready() {
 }
 
 cmd_launch() {
-	local want_json=0 requested="" requested_pg="" port pgport pg_pid
+	local want_json=0 requested="" requested_pg="" cors_origins="" port pgport pg_pid
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		--json) want_json=1; shift ;;
@@ -296,6 +298,11 @@ cmd_launch() {
 		--pg-port)
 			[ $# -ge 2 ] || die "--pg-port needs a value"
 			requested_pg="$2"
+			shift 2
+			;;
+		--cors-origins)
+			[ $# -ge 2 ] && [ -n "$2" ] || die "--cors-origins needs a comma-separated list"
+			cors_origins="$2"
 			shift 2
 			;;
 		*) die "unknown launch flag: $1" ;;
@@ -351,6 +358,10 @@ cmd_launch() {
 		# shellcheck disable=SC1090
 		. "$ENV_FILE"
 		set +a
+		# The calling shell's CORS_ORIGINS is dropped above; only the explicit flag reaches the app.
+		if [ -n "$cors_origins" ]; then
+			export CORS_ORIGINS="$cors_origins"
+		fi
 		# Node 20 (a common system default) has no `node --run`. npm run / vp run invoke the same `dev` script.
 		if command -v vp >/dev/null 2>&1; then
 			exec vp run dev

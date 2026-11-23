@@ -2,19 +2,31 @@
   "feature": "cors",
   "baseUrl": "http://127.0.0.1:1341",
   "commands": [
+    "verify-strapi launch (CORS_ORIGINS unset, fallback http://localhost:4321)",
+    "verify-strapi http GET /_health --header 'Origin: http://localhost:4321' --out-headers health-allowed.headers",
+    "verify-strapi http GET /_health --header 'Origin: https://evil.example' --out-headers health-foreign.headers",
     "verify-strapi http GET /api/users --header 'Origin: http://localhost:4321' --out-headers get-allowed.headers",
-    "verify-strapi http GET /api/users --header 'Origin: https://evil.example' --out-headers get-foreign.headers",
     "verify-strapi http OPTIONS /api/auth/local --header 'Origin: http://localhost:4321' --header 'Access-Control-Request-Method: POST' --out-headers preflight-allowed.headers",
-    "CORS_ORIGINS=https://evil.example verify-strapi launch (relaunch: inherited value must not reach Strapi)",
     "verify-strapi http OPTIONS /api/auth/local --header 'Origin: https://evil.example' --header 'Access-Control-Request-Method: POST' --out-headers preflight-foreign.headers",
-    "verify-strapi http GET /_health --header 'Origin: http://localhost:4321' --out-headers health-allowed-relaunch.headers",
-    "verify-strapi http GET /_health --header 'Origin: https://evil.example' --out-headers health-foreign-relaunch.headers"
+    "verify-strapi cleanup",
+    "CORS_ORIGINS=https://evil.example verify-strapi launch --cors-origins 'https://front.verify.test,https://admin.verify.test'",
+    "verify-strapi http GET /_health --header 'Origin: https://front.verify.test' --out-headers list-listed.headers",
+    "verify-strapi http GET /_health --header 'Origin: https://admin.verify.test'",
+    "verify-strapi http GET /_health --header 'Origin: http://localhost:4321' --out-headers list-fallback.headers",
+    "verify-strapi http GET /_health --header 'Origin: https://evil.example' --out-headers list-shell.headers",
+    "verify-strapi http OPTIONS /api/auth/local --header 'Origin: https://front.verify.test' --header 'Access-Control-Request-Method: POST' --out-headers list-preflight.headers",
+    "verify-strapi launch --cors-origins ''"
   ],
   "checks": [
     { "name": "allowed origin echoed with credentials", "header": "Access-Control-Allow-Origin: http://localhost:4321", "pass": true },
-    { "name": "foreign origin gets no Access-Control-Allow-Origin", "pass": true },
+    { "name": "foreign origin gets no Access-Control-Allow-Origin, Vary: Origin", "pass": true },
+    { "name": "403 on GET /api/users still carries the allowed-origin headers", "status": 403, "pass": true },
     { "name": "allowed preflight lists methods and headers", "status": 204, "pass": true },
     { "name": "foreign preflight has no Access-Control-Allow-Origin", "status": 200, "pass": true },
-    { "name": "inherited CORS_ORIGINS ignored by launch", "pass": true }
+    { "name": "--cors-origins: both listed origins echoed", "pass": true },
+    { "name": "--cors-origins: fallback http://localhost:4321 no longer allowed", "pass": true },
+    { "name": "--cors-origins: calling shell's CORS_ORIGINS=https://evil.example ignored", "pass": true },
+    { "name": "--cors-origins: listed preflight", "status": 204, "pass": true },
+    { "name": "--cors-origins '' refused before anything starts", "message": "verify-strapi: --cors-origins needs a comma-separated list", "pass": true }
   ]
 }

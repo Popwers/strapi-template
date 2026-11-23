@@ -8,6 +8,7 @@ CORS decides which browser origins may call the API with credentials. Only the f
 - `cors-foreign` sends no `Access-Control-Allow-Origin` for an origin outside the list.
 - `cors-preflight` answers an allowed `OPTIONS` preflight with 204 and the allowed methods and headers.
 - `cors-fallback` allows only `http://localhost:4321` when `CORS_ORIGINS` is unset.
+- `cors-configured` allows exactly the listed origins when `CORS_ORIGINS` is set, and drops the fallback.
 
 ## How to get to it (user POV)
 
@@ -24,6 +25,7 @@ Preconditions:
 - **Foreign origin.** Run the same with `--header 'Origin: https://evil.example'`. Headers have `Vary: Origin` and no `Access-Control-Allow-Origin`.
 - **Allowed preflight.** Run `verify-strapi http OPTIONS /api/auth/local --header 'Origin: http://localhost:4321' --header 'Access-Control-Request-Method: POST' --out-headers <dir>/preflight.headers`. Status is `204` with `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` (`Content-Type,Authorization,Origin,Accept`).
 - **Foreign preflight.** Same with `Origin: https://evil.example`. There is no `Access-Control-Allow-Origin`; the browser blocks the call.
+- **Configured list.** Run `verify-strapi cleanup`, then `verify-strapi launch --cors-origins 'https://front.verify.test,https://admin.verify.test'` and `verify-strapi doctor`. `GET /_health` with `Origin: https://front.verify.test` (and with `https://admin.verify.test`) echoes that origin. `Origin: http://localhost:4321` now gets no `Access-Control-Allow-Origin`.
 - **Proof.** Save the header files and `manifest.json` under `proof/cors/`.
 
 ## Gotchas
@@ -31,4 +33,4 @@ Preconditions:
 - The status code does not prove CORS. `GET /api/users` is 403 for anonymous callers and still carries the allowed-origin headers. Read the headers.
 - The foreign preflight answers 200, not an error. The proof is the missing `Access-Control-Allow-Origin`.
 - curl and server-to-server calls send no `Origin` and are never blocked by CORS. Always send an `Origin` header.
-- To prove a configured list, launch with that value in the app env only. A value exported in the calling shell is dropped by `launch` on purpose.
+- To prove a configured list, pass it with `launch --cors-origins LIST`. A `CORS_ORIGINS` exported in the calling shell is dropped by `launch` on purpose, so it never reaches the app. `--cors-origins ''` is refused before anything starts. The relaunch starts from a fresh database.

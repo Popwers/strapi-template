@@ -13,7 +13,8 @@
     "verify-strapi http GET <first avatar url>",
     "verify-strapi http POST /upload --header 'Authorization: Bearer <admin token>' --form 'files=@bad.svg'",
     "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@bad.svg'",
-    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@note.txt'"
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --form 'files.avatar=@note.txt'",
+    "verify-strapi http POST /api/users/avatar --header 'Authorization: Bearer <jwt>' --json '{}'"
   ],
   "checks": [
     {
@@ -79,6 +80,11 @@
     {
       "name": "product gap: avatar route stores txt",
       "mime": "text/plain",
+      "pass": true
+    },
+    {
+      "name": "non-multipart POST returns user.me and changes nothing",
+      "status": 200,
       "pass": true
     }
   ]

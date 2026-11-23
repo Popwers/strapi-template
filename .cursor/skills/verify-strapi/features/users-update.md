@@ -8,6 +8,7 @@ Users update lets a signed-in end user change their own account with `PUT /api/u
 - `update-strip` drops `blocked`, `role`, `provider`, `confirmed`, and `passwordChangedAt` from the body so the owner cannot set them.
 - `update-other` returns 403 when a different authenticated user targets that id.
 - `update-anonymous` returns 403 when no bearer token is sent.
+- `update-admin-role` lets a user whose role type is `admin` update any user by numeric id. The same keys are still stripped.
 
 ## How to get to it (user POV)
 
@@ -28,6 +29,7 @@ Preconditions:
 - **Read back.** Run `verify-strapi http GET /api/users/me --header "Authorization: Bearer <owner-jwt>"`. Status is `200`, `username` is `renamed_live`, `blocked` is `false`, and the body has no `passwordChangedAt`.
 - **Other user.** Run `verify-strapi http PUT /api/users/<owner-id> --header "Authorization: Bearer <other-jwt>" --json '{"username":"hijacked"}'`. Status is `403`. The owner's `GET /api/users/me` username is unchanged.
 - **Anonymous.** Run `verify-strapi http PUT /api/users/<owner-id> --json '{"username":"anonymous"}'`. Status is `403`.
+- **Admin-type role.** As the admin, create the role: `verify-strapi http POST /users-permissions/roles --header "Authorization: Bearer <admin token>" --json '{"name":"Admin","description":"verify","permissions":<the Authenticated role permissions>}'`. Its `type` is `admin`. Read `GET /users-permissions/advanced`, `PUT` it back with `default_role` set to `admin`, register `roleadmin@example.com`, then `PUT` the original settings back and require `default_role` `authenticated`. Run `verify-strapi http PUT /api/users/<owner-id> --header "Authorization: Bearer <roleadmin-jwt>" --json '{"username":"set_by_admin_role","blocked":true}'`. Status is `200`, `username` is `set_by_admin_role` and `blocked` is still `false`.
 - **Proof.** Save the before-grant 403, the owner 200, `/api/users/me`, the other-user 403, the anonymous 403, and `manifest.json` under `proof/users-update/`. Redact JWTs.
 
 ## Gotchas
@@ -38,3 +40,4 @@ Preconditions:
 - `password` is not stripped. A PUT that sets it signs the owner out: every earlier JWT gets 401 and no new token comes back. Keep `password` out of this recipe; it belongs to [Users password](./users-password.md).
 - The role PUT must include the existing `permissions` map at the top level of the body. Sending only the new action, or wrapping the body as `{ "data": ... }` or `{ "role": ... }`, omits that map. The response is still `{"ok":true}`, and grants such as `user.me` are gone.
 - `verified-unreachable` applies only when the admin grant cannot be performed.
+- The admin Content Manager cannot move a user to another role. It drops `role` from the edit, answers `200`, and the user keeps the Authenticated role (`GET /content-manager/relations/plugin::users-permissions.user/<documentId>/role`). A user gets the `admin` type only by registering while `default_role` is `admin`. Restore `default_role` right after, or every later register lands in that role.

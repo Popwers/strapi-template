@@ -1,0 +1,28 @@
+{
+  "attempts": [
+    {
+      "status": 400,
+      "message": "Invalid credentials"
+    },
+    {
+      "status": 400,
+      "message": "Invalid credentials"
+    },
+    {
+      "status": 400,
+      "message": "Invalid credentials"
+    },
+    {
+      "status": 400,
+      "message": "Invalid credentials"
+    },
+    {
+      "status": 400,
+      "message": "Invalid credentials"
+    },
+    {
+      "status": 429,
+      "message": "Too many requests, please try again later."
+    }
+  ]
+}
