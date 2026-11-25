@@ -133,6 +133,12 @@ export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 			accessKeyId: requireEnv('S3_ACCESS_KEY_ID'),
 			secretAccessKey: requireEnv('S3_SECRET_ACCESS_KEY'),
 		},
+		/**
+		 * The SDK waits forever by default, and a stalled upload would hold the overlap guard in
+		 * `index.ts` and skip every later run. An idle timeout, not a total one: a large archive
+		 * may take longer than a step's budget while bytes keep moving.
+		 */
+		requestHandler: { connectionTimeout: 30_000, socketTimeout: STEP_TIMEOUT_MS },
 	});
 
 	const steps: BackupStep[] = [
