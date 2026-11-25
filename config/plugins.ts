@@ -53,15 +53,19 @@ export default ({ env }) => ({
 			dsn: env('SENTRY_DSN'),
 			sendMetadata: true,
 			init: {
-				// Tag each event with the deployed commit so an error maps back to the release that
-				// introduced it. Coolify passes SOURCE_COMMIT as a build argument and the Dockerfile
-				// keeps it in the image; an empty value means no release rather than a blank one.
+				/**
+				 * Tag each event with the deployed commit so an error maps back to the release that
+				 * introduced it. Coolify passes SOURCE_COMMIT as a build argument and the Dockerfile
+				 * keeps it in the image; an empty value means no release rather than a blank one.
+				 */
 				release: env('SENTRY_RELEASE', '') || env('SOURCE_COMMIT', '') || undefined,
 				// No IP address or user identity on events; `beforeSend` removes the rest.
 				sendDefaultPii: false,
-				// Drop the answers Strapi gives a visitor (refusals, 400s, failed logins, path
-				// traversals) before they reach Sentry, then strip what is left of personal data
-				// (headers, cookies, body, query string). Tested in `tests/sentry-noise.test.ts`.
+				/**
+				 * Drop the answers Strapi gives a visitor (refusals, 400s, failed logins, path
+				 * traversals) before they reach Sentry, then strip what is left of personal data
+				 * (headers, cookies, body, query string). Tested in `tests/sentry-noise.test.ts`.
+				 */
 				beforeSend: (event, hint) => {
 					const original = hint?.originalException;
 					const error = original instanceof Error ? original : undefined;

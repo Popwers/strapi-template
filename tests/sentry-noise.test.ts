@@ -166,9 +166,11 @@ interface SentryPluginConfig {
 }
 
 const asStrapi = (stub: StrapiStub): Core.Strapi => {
-	// SAFETY: the stub implements everything the Sentry plugin reaches for (`config.get`,
-	// `config.info`, `log`, `server.use`, `plugin().service()`); a missing member throws a
-	// TypeError, so a drift in the plugin fails the suite instead of passing silently.
+	/**
+	 * SAFETY: the stub implements everything the Sentry plugin reaches for (`config.get`,
+	 * `config.info`, `log`, `server.use`, `plugin().service()`); a missing member throws a
+	 * TypeError, so a drift in the plugin fails the suite instead of passing silently.
+	 */
 	return stub as never;
 };
 

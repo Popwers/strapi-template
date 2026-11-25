@@ -41,9 +41,11 @@ const middlewares: MiddlewareEntry[] = [
 	},
 	{
 		name: 'strapi::cors',
-		// Front origins allowed to read API responses. The default (`*`) echoes any Origin with
-		// credentials, and an `origin` that resolves to undefined is treated as `*`, so the fallback
-		// stays a concrete dev origin (the Astro dev server). An empty value allows nobody.
+		/**
+		 * Front origins allowed to read API responses. The default (`*`) echoes any Origin with
+		 * credentials, and an `origin` that resolves to undefined is treated as `*`, so the fallback
+		 * stays a concrete dev origin (the Astro dev server). An empty value allows nobody.
+		 */
 		config: { origin: env.array('CORS_ORIGINS', ['http://localhost:4321']) },
 	},
 	'strapi::poweredBy',
