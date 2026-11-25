@@ -55,6 +55,7 @@ src/admin/              Admin panel (locales, favicon)
 src/api/                Content-type APIs (empty in the template)
 src/extensions/users-permissions/   Custom user create/update
 src/middlewares/admin-redirect.ts   `/` and `/index.html` → `/admin`
+src/middlewares/permissions-policy.ts   `Permissions-Policy` on every response
 src/index.ts            Bootstrap. Schedules the backup cron
 src/backup.ts           Backup run: pg_dump + Strapi export to R2
 src/backup-monitor.ts   Sentry cron check-ins around a backup run
@@ -88,7 +89,9 @@ With `S3_UPLOAD_BUCKET` set, media goes to that R2 bucket through `@strapi/provi
 
 ### Security headers (`config/middlewares.ts`)
 
-`strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source.
+`strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source. Helmet sets no `Permissions-Policy`, so `global::permissions-policy` denies camera, geolocation, microphone, payment and USB.
+
+`config/server.ts` sets `proxy: { koa: true, maxIpsCount: 1 }`. Strapi 5 hands Koa only `proxy.koa` (a bare `proxy: true` does nothing), so behind the TLS proxy `X-Forwarded-Proto` makes the admin cookies `Secure`, and the client address is the last `X-Forwarded-For` entry, the one the nearest proxy appended: the login rate limits key on it and a client cannot forge it. `proxy.e2e.ts` checks both. `PROXY=false` turns it off for a server reached without a proxy.
 
 `strapi::cors` takes its `origin` from `CORS_ORIGINS` (`env.array`), with `http://localhost:4321` as the fallback. Strapi's default (`*` with credentials) echoes any Origin, and an `origin` that resolves to undefined is treated as `*` too, so never read the variable without a fallback and never put `*` in it. An Origin outside the list gets no `Access-Control-Allow-Origin`; `cors.e2e.ts` checks it on the real server.
 
