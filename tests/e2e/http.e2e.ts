@@ -24,3 +24,9 @@ test('responses deny the browser features the CMS never uses', async ({ app }) =
 		'camera=(), geolocation=(), microphone=(), payment=(), usb=()',
 	);
 });
+
+test('robots.txt keeps crawlers out of the whole CMS host', async ({ app }) => {
+	const response = await api(app, '/robots.txt');
+
+	expect(await response.text()).toMatch(/^User-agent: \*\nDisallow: \/$/m);
+});
