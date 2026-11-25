@@ -39,6 +39,7 @@ const middlewares: MiddlewareEntry[] = [
 			hsts: false,
 		},
 	},
+	'global::permissions-policy',
 	{
 		name: 'strapi::cors',
 		/**
