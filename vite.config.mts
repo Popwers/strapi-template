@@ -1,4 +1,28 @@
+import { existsSync } from 'node:fs';
+
 import { defineConfig } from 'vite-plus';
+import type { DummyRuleMap } from 'vite-plus/lint';
+
+const hasNoComments = existsSync('tools/oxlint/no-comments/index.ts');
+
+/** Comment policy (vendored `tools/oxlint/no-comments`): on only when the plugin is in the repo. */
+function noCommentsRules(): DummyRuleMap {
+	if (!hasNoComments) {
+		return {};
+	}
+
+	return {
+		'no-comments/english-only': 'error',
+		'no-comments/no-caller-lists': 'error',
+		'no-comments/no-commented-out-code': 'error',
+		'no-comments/no-narration': 'error',
+		'no-comments/no-restated-names': 'error',
+		'no-comments/no-stacked-line-comments': 'error',
+		'no-comments/no-ticket-ids': 'error',
+		'no-comments/no-unexplained-suppressions': 'error',
+		'no-comments/no-unlinked-constraints': 'error',
+	};
+}
 
 export default defineConfig({
 	fmt: {
@@ -85,6 +109,7 @@ export default defineConfig({
 			'.serena/**',
 			'.windsurf/**',
 			'tools/oxlint/anti-slop/**',
+			'tools/oxlint/no-comments/**',
 		],
 	},
 
@@ -111,9 +136,15 @@ export default defineConfig({
 			'.serena/**',
 			'.windsurf/**',
 			'tools/oxlint/anti-slop/**',
+			'tools/oxlint/no-comments/**',
 		],
 		// Vendored from https://github.com/dmmulroy/anti-slop (tools/oxlint/anti-slop).
-		jsPlugins: [{ name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' }],
+		jsPlugins: [
+			{ name: 'anti-slop', specifier: './tools/oxlint/anti-slop/index.ts' },
+			...(hasNoComments
+				? [{ name: 'no-comments', specifier: './tools/oxlint/no-comments/index.ts' }]
+				: []),
+		],
 		options: {
 			typeAware: true,
 			typeCheck: true,
@@ -143,6 +174,7 @@ export default defineConfig({
 			'anti-slop/no-unsafe-dictionary-type': 'error',
 			'anti-slop/no-widen-then-assert': 'error',
 			'anti-slop/require-safety-comment-for-type-assertion': 'error',
+			...noCommentsRules(),
 		},
 	},
 
