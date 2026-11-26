@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/Popwers/strapi-template/compare/v2.0.0...v2.0.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* security, performance and modern-web pass ([#46](https://github.com/Popwers/strapi-template/issues/46)) ([933c6b1](https://github.com/Popwers/strapi-template/commit/933c6b1bc98bca3b9edbb51bdf2ae9231776aa0f))
+
 # [2.0.0](https://github.com/Popwers/strapi-template/compare/v1.2.2...v2.0.0) (2026-11-23)
 
 
