@@ -12,6 +12,14 @@ const MB = 1024 * 1024;
 export const UPLOAD_SIZE_LIMIT = 15 * MB;
 
 /**
+ * Cap on all the files of one multipart request (bytes), enforced while `strapi::body` parses it,
+ * before any route authenticates the caller. The admin's media field sends every dropped file in one
+ * request, so this allows six files at `UPLOAD_SIZE_LIMIT`. Cloudflare refuses bodies above 100 MB
+ * on the Free and Pro plans: the cap holds that line for traffic that reaches the origin directly.
+ */
+export const UPLOAD_REQUEST_LIMIT = 100 * MB;
+
+/**
  * MIME types accepted by the upload plugin, validated from file content (not the declared header).
  * SVG/HTML are intentionally excluded (XSS risk), executables too.
  */

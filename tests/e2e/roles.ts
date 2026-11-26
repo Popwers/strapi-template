@@ -38,7 +38,7 @@ function assertOk(ok: boolean, step: string): asserts ok {
 	if (!ok) throw new Error(`E2E setup failed: ${step}`);
 }
 
-async function adminHeaders(app: App): Promise<{ authorization: string }> {
+export async function adminHeaders(app: App): Promise<{ authorization: string }> {
 	const response = await sendJson(app, 'POST', '/admin/login', {
 		email: ADMIN_EMAIL,
 		password: ADMIN_PASSWORD,

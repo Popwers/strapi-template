@@ -87,6 +87,8 @@ Each run checks in to the Sentry cron monitor `strapi-backup` (`src/backup-monit
 
 With `S3_UPLOAD_BUCKET` set, media goes to that R2 bucket through `@strapi/provider-upload-aws-s3` (no ACL header, R2 has none) and file URLs use `S3_UPLOAD_PUBLIC_URL`, whose origin is added to the admin's `img-src` and `media-src`. Without it, media stays in `public/uploads`. Production refuses to boot on local storage unless `UPLOAD_LOCAL=true` (set by `tests/e2e/serve.sh` and `docker-compose.yml`), since a container's disk is wiped on every deploy.
 
+Limits live in `config/upload-limits.ts`: 15 MB per file (`UPLOAD_SIZE_LIMIT`, the upload plugin's `sizeLimit`) and 100 MB for all the files of one multipart request (`UPLOAD_REQUEST_LIMIT`, formidable's `maxFileSize` on `strapi::body`, which formidable 2 counts across the whole request). `strapi::body` parses multipart before any route authenticates the caller, so the request cap is what bounds an anonymous body: above it the answer is 413 before auth. The admin's media field sends every dropped file in one request, so the cap leaves room for six files at the per-file limit. `uploads.e2e.ts` checks both.
+
 ### Security headers (`config/middlewares.ts`)
 
 `strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source. Helmet sets no `Permissions-Policy`, so `global::permissions-policy` denies camera, geolocation, microphone, payment and USB.
