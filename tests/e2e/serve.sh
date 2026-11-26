@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # App under test for the e2e suite (`e2e.config.mts` runs it as `app.command`).
-# Starts a throwaway Postgres and an S3 mock (the R2 backups bucket), builds Strapi, creates the
-# admin and serves in production mode with the backup cron every 10 s. The runner stops the process
-# group with SIGTERM and SIGKILLs it 10 s later, so the EXIT trap removes both containers and kills
+# Starts a throwaway Postgres, an S3 mock (the R2 backups bucket) and a Mailpit SMTP catcher, builds
+# Strapi, creates the admin and serves in production mode with the backup cron every 10 s. The runner stops the process
+# group with SIGTERM and SIGKILLs it 10 s later, so the EXIT trap removes the containers and kills
 # the server without waiting on it. Run it by hand to poke the
 # same stack; Ctrl-C tears everything down.
 set -euo pipefail
@@ -14,6 +14,9 @@ db_port="${E2E_DB_PORT:-5447}"
 s3_container="${E2E_S3_CONTAINER:-strapi-template-e2e-s3}"
 s3_port="${E2E_S3_PORT:-5448}"
 backup_bucket="${E2E_BACKUP_BUCKET:-e2e-backups}"
+mail_container="${E2E_MAIL_CONTAINER:-strapi-template-e2e-mail}"
+mail_port="${E2E_MAIL_PORT:-5449}"
+smtp_port="${E2E_SMTP_PORT:-5450}"
 strapi=./node_modules/.bin/strapi
 server_pid=""
 
@@ -21,13 +24,16 @@ stop() {
 	if [ -n "$server_pid" ]; then
 		kill -KILL "$server_pid" 2>/dev/null || true
 	fi
-	docker rm -fv "$db_container" "$s3_container" >/dev/null 2>&1 || true
+	docker rm -fv "$db_container" "$s3_container" "$mail_container" >/dev/null 2>&1 || true
 }
 trap stop EXIT
 trap 'exit 143' TERM
 trap 'exit 130' INT
 
-docker rm -fv "$db_container" "$s3_container" >/dev/null 2>&1 || true
+docker rm -fv "$db_container" "$s3_container" "$mail_container" >/dev/null 2>&1 || true
+docker run -d --rm --name "$mail_container" \
+	-e MP_SMTP_AUTH_ACCEPT_ANY=1 -e MP_SMTP_AUTH_ALLOW_INSECURE=1 -e MP_SMTP_DISABLE_RDNS=1 \
+	-p "127.0.0.1:${mail_port}:8025" -p "127.0.0.1:${smtp_port}:1025" axllent/mailpit:v1.27 >/dev/null
 docker run -d --rm --name "$s3_container" \
 	-e COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS="$backup_bucket" \
 	-p "127.0.0.1:${s3_port}:9090" adobe/s3mock:5.2.3 >/dev/null
@@ -56,6 +62,12 @@ export DATABASE_USERNAME=strapi
 export DATABASE_PASSWORD=strapi
 export UPLOAD_LOCAL=true
 export CORS_ORIGINS="${E2E_CORS_ORIGIN:-https://front.e2e.test}"
+# Mail goes to Mailpit, whose API the tests read the reset codes from.
+export SMTP_HOST=127.0.0.1
+export SMTP_PORT="$smtp_port"
+export SMTP_SECURE=false
+export SMTP_USERNAME=e2e
+export SMTP_PASSWORD=e2e
 # Backups: the cron fires every 10 s (six-field rule) into the mock bucket. The host may have no
 # pg_dump, so only the Strapi archive is asserted; the dump step reports its own failure.
 export CRON_SCHEDULE='*/10 * * * * *'

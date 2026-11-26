@@ -5,6 +5,7 @@ import { runBackup } from './backup';
 import { backupMonitorConfig, monitorBackup } from './backup-monitor';
 import { guardMemberWrites } from './extensions/users-permissions/member-writes';
 import { stampPasswordChanges } from './extensions/users-permissions/password-change';
+import { stampResetCodes } from './extensions/users-permissions/reset-code';
 import sendError, { sentryCheckIns } from './sentry';
 
 let isBackupRunning = false;
@@ -16,6 +17,7 @@ export default {
 
 	async bootstrap({ strapi }: { strapi: Core.Strapi }) {
 		stampPasswordChanges(strapi);
+		stampResetCodes(strapi);
 		guardMemberWrites(strapi);
 		// The upload plugin creates the "API Uploads" folder on the first API upload; two first
 		// uploads at once both insert it and one fails on its unique index. Create it once here.

@@ -1,9 +1,19 @@
+import { errors } from '@strapi/utils';
+
 import { generateUser, parseFiles } from './helper';
 import { revokeTokensOnPasswordChange } from './password-change';
+import { isResetCode, isResetCodeExpired } from './reset-code';
 
-const notAllowedFields = ['provider', 'confirmed', 'blocked', 'role', 'passwordChangedAt'];
+const notAllowedFields = [
+	'provider',
+	'confirmed',
+	'blocked',
+	'role',
+	'passwordChangedAt',
+	'resetPasswordRequestedAt',
+];
 
-const notAllowedFieldsContentManager = ['provider', 'role', 'passwordChangedAt'];
+const notAllowedFieldsContentManager = ['provider', 'role', 'passwordChangedAt', 'resetPasswordRequestedAt'];
 
 export default async (plugin) => {
 	// A JWT issued before the last password change is refused (`password-change.ts`).
@@ -45,6 +55,21 @@ export default async (plugin) => {
 				ctx.request.body = newUserWriteBody(ctx);
 
 				await initialAuthController.register(ctx);
+			},
+			resetPassword: async (ctx) => {
+				// The core accepts a code forever; past its lifetime it answers like an unknown code.
+				const code = ctx.request.body?.code;
+				if (isResetCode(code)) {
+					const user = await strapi.db.query('plugin::users-permissions.user').findOne({
+						where: { resetPasswordToken: code },
+						select: ['resetPasswordRequestedAt'],
+					});
+					if (user && isResetCodeExpired(user.resetPasswordRequestedAt, Date.now())) {
+						throw new errors.ValidationError('Incorrect code provided');
+					}
+				}
+
+				await initialAuthController.resetPassword(ctx);
 			},
 		};
 	};
