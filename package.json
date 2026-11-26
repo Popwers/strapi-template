@@ -86,6 +86,8 @@
     "koa-body": {
       "zod": "4.6.7"
     },
-    "glob@13": "14.0.6"
+    "glob@13": "14.0.6",
+    "@modelcontextprotocol/node": "2.1.2",
+    "@hono/node-server": "2.1.11"
   }
 }
