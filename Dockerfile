@@ -1,7 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # --- base: lean runtime image (alpine + node + libvips + postgres client) ---
-FROM node:lts-alpine AS base
+# Pinned by digest so a rebuild of the same commit gets the same Node and Alpine. Bump the tag and
+# the digest together (`docker buildx imagetools inspect node:<tag>`); apk packages follow the
+# pinned Alpine branch.
+FROM node:26.13.1-alpine3.24@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS base
 WORKDIR /opt/app
 RUN apk add --no-cache libstdc++ vips-dev postgresql-client curl && \
     npm config set audit false && \
@@ -15,7 +18,7 @@ ENV PORT=1337
 # --- base_deps: native build toolchain (sharp / node-gyp) -------------------
 FROM base AS base_deps
 RUN apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev && \
-    npm install -g node-gyp && \
+    npm install -g node-gyp@13.1.0 && \
     npm config set fetch-retry-maxtimeout 600000 -g
 
 # --- deps_full: install all deps (incl. devDeps) for build + dev runtime ----
