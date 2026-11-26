@@ -391,7 +391,7 @@ describe('Sentry plugin with the CMS beforeSend', () => {
 
 	describe('errors our own code captures without a request', () => {
 		test('reports a ValidationError, even with a message a request would drop', async () => {
-			// Same call as `src/sentry.ts`, used by the backup cron and by services.
+			// Same call as `src/sentry.ts`, used by services.
 			service.sendError(new errors.ValidationError('Invalid token'), (scope) =>
 				scope.setTag('context', 'backup upload failed'),
 			);

@@ -8,7 +8,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { engine, file, strapi as strapiTransfer } from '@strapi/data-transfer';
 import type { Core } from '@strapi/strapi';
 
-import sendError from './sentry';
+import type { BackupFailure } from './backup-alert';
 
 const execFileAsync = promisify(execFile);
 
@@ -146,9 +146,9 @@ async function uploadArtifact(s3Client: S3Client, artifact: BackupArtifact): Pro
  * too: the export streams every file of the upload plugin, from `<name>-files` through its URL on
  * R2, so the files bucket is backed up alongside the database.
  * @param strapi - The running Strapi instance.
- * @returns True when both steps uploaded.
+ * @returns The steps that failed; empty when both uploaded.
  */
-export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
+export async function runBackup(strapi: Core.Strapi): Promise<BackupFailure[]> {
 	const timestamp = Date.now();
 	const prefix = process.env.BACKUP_KEY_PREFIX ?? 'backup-';
 	const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'strapi-backup-'));
@@ -189,21 +189,20 @@ export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 	];
 
 	/**
-	 * Produces and uploads one step's artifact. A failure is reported and returned as `false`
-	 * instead of thrown, so the other step still runs.
+	 * Produces and uploads one step's artifact. A failure is logged and returned instead of thrown,
+	 * so the other step still runs.
 	 * @param step - The step to run.
-	 * @returns True when the artifact was uploaded.
+	 * @returns The failure, or undefined when the artifact was uploaded.
 	 */
-	const runStep = async (step: BackupStep): Promise<boolean> => {
+	const runStep = async (step: BackupStep): Promise<BackupFailure | undefined> => {
 		try {
 			const artifact = await step.produce();
 			await uploadArtifact(s3Client, artifact);
 			strapi.log.info(`Backup ${step.name} uploaded to ${artifact.key}`);
-			return true;
+			return undefined;
 		} catch (error) {
 			strapi.log.error(`Backup ${step.name} failed:`, error);
-			sendError(strapi, error);
-			return false;
+			return { step: step.name, reason: error instanceof Error ? error.message : String(error) };
 		}
 	};
 
@@ -211,7 +210,7 @@ export async function runBackup(strapi: Core.Strapi): Promise<boolean> {
 	try {
 		// The steps share no state (own work files, own keys), so they run side by side.
 		const outcomes = await Promise.all(steps.map(runStep));
-		return outcomes.every(Boolean);
+		return outcomes.filter((failure) => failure !== undefined);
 	} finally {
 		fs.rmSync(workDir, { recursive: true, force: true });
 		strapi.log.info('Backup process finished');
