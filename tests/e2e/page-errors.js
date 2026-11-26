@@ -1,7 +1,9 @@
-// Init script (`e2e.config.mts` `initScripts`): records page failures in sessionStorage, so they
-// survive navigations until `fixtures.ts` reads them after the test. It records `console.error`,
-// uncaught errors and rejections, same-origin assets that fail to load or answer 4xx/5xx, and CSP
-// violations. Cross-origin requests are ignored: tests block third parties on purpose.
+/**
+ * Init script (`e2e.config.mts` `initScripts`): records page failures in sessionStorage, so they
+ * survive navigations until `fixtures.ts` reads them after the test. It records `console.error`,
+ * uncaught errors and rejections, same-origin assets that fail to load or answer 4xx/5xx, and CSP
+ * violations. Cross-origin requests are ignored: tests block third parties on purpose.
+ */
 (() => {
 	const key = '__e2ePageErrors';
 	const isSameOrigin = (url) => {

@@ -15,8 +15,10 @@ services:
             UPLOAD_LOCAL: ${UPLOAD_LOCAL:-true}
         volumes:
             - ./public/uploads:/opt/app/public/uploads
+        # Loopback only: with PROXY on, Koa trusts X-Forwarded-For, so the port must be reachable
+        # through the reverse proxy alone or a client picks its own login rate-limit bucket.
         ports:
-            - '1337:1337'
+            - '127.0.0.1:1337:1337'
         depends_on:
             strapi-cms-db:
                 condition: service_healthy

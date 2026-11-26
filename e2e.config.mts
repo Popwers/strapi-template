@@ -10,14 +10,16 @@ import {
 	DB_CONTAINER,
 	DB_PORT,
 	FRONT_ORIGIN,
+	MAIL_PORT,
 	PORT,
 	S3_PORT,
+	SMTP_PORT,
 	USER_PASSWORD,
 } from './tests/e2e/support';
 
 /**
- * Suite against the production build. `tests/e2e/serve.sh` starts a throwaway Postgres and an S3
- * mock, builds Strapi, creates the admin and serves it; it removes both containers on exit.
+ * Suite against the production build. `tests/e2e/serve.sh` starts a throwaway Postgres, an S3 mock
+ * and Mailpit, builds Strapi, creates the admin and serves it; it removes the containers on exit.
  * `E2E_REUSE_SERVER=1` reuses a server already listening on the port (local iteration only).
  */
 export default {
@@ -42,6 +44,8 @@ export default {
 						E2E_DB_CONTAINER: DB_CONTAINER,
 						E2E_S3_PORT: String(S3_PORT),
 						E2E_BACKUP_BUCKET: BACKUP_BUCKET,
+						E2E_MAIL_PORT: String(MAIL_PORT),
+						E2E_SMTP_PORT: String(SMTP_PORT),
 						E2E_CORS_ORIGIN: FRONT_ORIGIN,
 						E2E_ADMIN_EMAIL: ADMIN_EMAIL,
 						E2E_ADMIN_PASSWORD: ADMIN_PASSWORD,

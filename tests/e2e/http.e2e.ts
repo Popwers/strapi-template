@@ -16,3 +16,17 @@ test('the site root redirects to the admin panel', async ({ app }) => {
 	expect(response.status).toBe(302);
 	expect(response.headers.get('location')).toBe('/admin');
 });
+
+test('responses deny the browser features the CMS never uses', async ({ app }) => {
+	const response = await api(app, '/admin');
+
+	expect(response.headers.get('permissions-policy')).toBe(
+		'camera=(), geolocation=(), microphone=(), payment=(), usb=()',
+	);
+});
+
+test('robots.txt keeps crawlers out of the whole CMS host', async ({ app }) => {
+	const response = await api(app, '/robots.txt');
+
+	expect(await response.text()).toMatch(/^User-agent: \*\nDisallow: \/$/m);
+});

@@ -30,7 +30,7 @@ export const isRefusedRequestError = (name: string | undefined): boolean =>
  *
  * `@strapi/plugin-sentry` captures an error thrown out of a Koa request and, with `sendMetadata`,
  * attaches the request to the event (`parseRequest`). `sendError` in `src/sentry.ts` forwards the
- * errors our own code caught (the backup cron, lifecycles, services) without a request, so a
+ * errors our own code caught (lifecycles, services) without a request, so a
  * `ValidationError` raised there still reaches Sentry.
  * @param name - The error name, from the original exception or the event.
  * @param event - The event Sentry is about to send.

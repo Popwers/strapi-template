@@ -166,9 +166,11 @@ interface SentryPluginConfig {
 }
 
 const asStrapi = (stub: StrapiStub): Core.Strapi => {
-	// SAFETY: the stub implements everything the Sentry plugin reaches for (`config.get`,
-	// `config.info`, `log`, `server.use`, `plugin().service()`); a missing member throws a
-	// TypeError, so a drift in the plugin fails the suite instead of passing silently.
+	/**
+	 * SAFETY: the stub implements everything the Sentry plugin reaches for (`config.get`,
+	 * `config.info`, `log`, `server.use`, `plugin().service()`); a missing member throws a
+	 * TypeError, so a drift in the plugin fails the suite instead of passing silently.
+	 */
 	return stub as never;
 };
 
@@ -389,7 +391,7 @@ describe('Sentry plugin with the CMS beforeSend', () => {
 
 	describe('errors our own code captures without a request', () => {
 		test('reports a ValidationError, even with a message a request would drop', async () => {
-			// Same call as `src/sentry.ts`, used by the backup cron and by services.
+			// Same call as `src/sentry.ts`, used by services.
 			service.sendError(new errors.ValidationError('Invalid token'), (scope) =>
 				scope.setTag('context', 'backup upload failed'),
 			);

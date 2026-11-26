@@ -10,6 +10,9 @@ export const DB_CONTAINER = process.env.E2E_DB_CONTAINER ?? 'strapi-template-e2e
 /** S3 mock standing in for the R2 backups bucket. */
 export const S3_PORT = Number(process.env.E2E_S3_PORT ?? '5448');
 export const BACKUP_BUCKET = 'e2e-backups';
+/** Mailpit, the SMTP catcher Strapi mails to: its HTTP API on `MAIL_PORT`, SMTP on `SMTP_PORT`. */
+export const MAIL_PORT = Number(process.env.E2E_MAIL_PORT ?? '5449');
+export const SMTP_PORT = Number(process.env.E2E_SMTP_PORT ?? '5450');
 export const BASE_URL = `http://127.0.0.1:${PORT}`;
 /** Front origin `serve.sh` puts in `CORS_ORIGINS`: the only one the API answers with CORS headers. */
 export const FRONT_ORIGIN = process.env.E2E_CORS_ORIGIN ?? 'https://front.e2e.test';

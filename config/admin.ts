@@ -17,6 +17,10 @@ export default ({ env }) => ({
 			salt: env('TRANSFER_TOKEN_SALT'),
 		},
 	},
+	// Encrypts API tokens at rest so the admin can show them again; without it Strapi only warns.
+	secrets: {
+		encryptionKey: env('ENCRYPTION_KEY'),
+	},
 	flags: {
 		nps: false,
 		promoteEE: false,

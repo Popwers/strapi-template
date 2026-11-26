@@ -2,9 +2,10 @@ import type { Core } from '@strapi/strapi';
 
 import { assertDurableUploadStorage } from '../config/upload-storage';
 import { runBackup } from './backup';
-import { backupMonitorConfig, monitorBackup } from './backup-monitor';
+import { alertBackupFailure } from './backup-alert';
+import { guardMemberWrites } from './extensions/users-permissions/member-writes';
 import { stampPasswordChanges } from './extensions/users-permissions/password-change';
-import sendError, { sentryCheckIns } from './sentry';
+import { stampResetCodes } from './extensions/users-permissions/reset-code';
 
 let isBackupRunning = false;
 
@@ -15,16 +16,16 @@ export default {
 
 	async bootstrap({ strapi }: { strapi: Core.Strapi }) {
 		stampPasswordChanges(strapi);
+		stampResetCodes(strapi);
+		guardMemberWrites(strapi);
 		// The upload plugin creates the "API Uploads" folder on the first API upload; two first
 		// uploads at once both insert it and one fails on its unique index. Create it once here.
 		await strapi.plugin('upload').service('api-upload-folder').getAPIUploadFolder();
 
 		const backupSchedule = process.env.CRON_SCHEDULE || '0 */6 * * *';
-		// `strapi.cron` schedules in the server's timezone; the monitor must expect runs in the same.
-		const monitorConfig = backupMonitorConfig(
-			backupSchedule,
-			Intl.DateTimeFormat().resolvedOptions().timeZone,
-		);
+		if (process.env.NODE_ENV === 'production' && !process.env.BACKUP_ALERT_EMAIL_TO) {
+			strapi.log.warn('BACKUP_ALERT_EMAIL_TO is unset: a failed backup will only be logged');
+		}
 		strapi.cron.add({
 			backup: {
 				task: async ({ strapi }) => {
@@ -36,16 +37,12 @@ export default {
 					}
 					isBackupRunning = true;
 					try {
-						// Each failed step is already sent to Sentry; the check-ins add the heartbeat.
-						await monitorBackup(
-							sentryCheckIns(strapi),
-							monitorConfig,
-							() => runBackup(strapi),
-							(error) => strapi.log.warn('Backup monitor check-in failed:', error),
-						);
+						const failures = await runBackup(strapi);
+						if (failures.length > 0) await alertBackupFailure(strapi, failures);
 					} catch (error) {
 						strapi.log.error('Backup failed:', error);
-						sendError(strapi, error);
+						const reason = error instanceof Error ? error.message : String(error);
+						await alertBackupFailure(strapi, [{ step: 'backup run', reason }]);
 					} finally {
 						isBackupRunning = false;
 					}

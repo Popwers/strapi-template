@@ -1,5 +1,6 @@
 import { CSP_DEFAULTS, env } from '@strapi/utils';
 
+import { UPLOAD_REQUEST_LIMIT } from './upload-limits';
 import { uploadMediaOrigins } from './upload-storage';
 
 /** Options passed through to the `strapi::security` middleware (koa-helmet). */
@@ -13,11 +14,18 @@ interface CorsConfig {
 	origin: string[];
 }
 
+/** Options passed through to the `strapi::body` middleware (koa-body). */
+interface BodyConfig {
+	/** formidable 2 counts `maxFileSize` across every file of the request, not per file. */
+	formidable: { maxFileSize: number };
+}
+
 type MiddlewareEntry =
 	| string
 	| { resolve: string }
 	| { name: 'strapi::security'; config: SecurityConfig }
-	| { name: 'strapi::cors'; config: CorsConfig };
+	| { name: 'strapi::cors'; config: CorsConfig }
+	| { name: 'strapi::body'; config: BodyConfig };
 
 const mediaOrigins = uploadMediaOrigins();
 
@@ -39,16 +47,19 @@ const middlewares: MiddlewareEntry[] = [
 			hsts: false,
 		},
 	},
+	'global::permissions-policy',
 	{
 		name: 'strapi::cors',
-		// Front origins allowed to read API responses. The default (`*`) echoes any Origin with
-		// credentials, and an `origin` that resolves to undefined is treated as `*`, so the fallback
-		// stays a concrete dev origin (the Astro dev server). An empty value allows nobody.
+		/**
+		 * Front origins allowed to read API responses. The default (`*`) echoes any Origin with
+		 * credentials, and an `origin` that resolves to undefined is treated as `*`, so the fallback
+		 * stays a concrete dev origin (the Astro dev server). An empty value allows nobody.
+		 */
 		config: { origin: env.array('CORS_ORIGINS', ['http://localhost:4321']) },
 	},
 	'strapi::poweredBy',
 	'strapi::query',
-	'strapi::body',
+	{ name: 'strapi::body', config: { formidable: { maxFileSize: UPLOAD_REQUEST_LIMIT } } },
 	'strapi::session',
 	// Outer so it compresses favicon and public bodies on the way out.
 	'strapi::compression',
