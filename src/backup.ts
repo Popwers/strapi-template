@@ -12,7 +12,7 @@ import sendError from './sentry';
 
 const execFileAsync = promisify(execFile);
 
-/** Each step gets 5 minutes before it is reported as failed. */
+/** The dump may run this long in all; the export and the uploads may stall this long. */
 const STEP_TIMEOUT_MS = 300_000;
 
 /** One file produced by a backup step, uploaded under `key`. */
@@ -86,12 +86,40 @@ async function exportStrapiArchive(strapi: Core.Strapi, basePath: string): Promi
 		versionStrategy: 'ignore',
 		schemaStrategy: 'ignore',
 	});
-	const results = await transfer.transfer();
-	const archivePath = results.destination?.file?.path;
-	if (archivePath === undefined || !fs.existsSync(archivePath)) {
-		throw new Error(`Strapi export wrote no archive at ${basePath}`);
+	/**
+	 * A stalled export would hold the overlap guard in `index.ts` and skip every later run. An idle
+	 * timeout, not a total one: a large media library may take longer while rows and bytes keep
+	 * moving. Aborting makes `transfer()` reject once the engine closed its providers, which turns
+	 * the database lifecycles it disabled back on.
+	 */
+	let isTimedOut = false;
+	let idleTimer: NodeJS.Timeout | undefined;
+	const restartIdleTimer = (): void => {
+		clearTimeout(idleTimer);
+		idleTimer = setTimeout(() => {
+			isTimedOut = true;
+			transfer.abortTransfer().catch(() => undefined);
+		}, STEP_TIMEOUT_MS);
+	};
+	for (const event of ['stage::start', 'stage::progress', 'stage::finish']) {
+		transfer.progress.stream.on(event, restartIdleTimer);
 	}
-	return archivePath;
+	restartIdleTimer();
+	try {
+		const results = await transfer.transfer();
+		const archivePath = results.destination?.file?.path;
+		if (archivePath === undefined || !fs.existsSync(archivePath)) {
+			throw new Error(`Strapi export wrote no archive at ${basePath}`);
+		}
+		return archivePath;
+	} catch (error) {
+		if (!isTimedOut) throw error;
+		throw new Error(`Strapi export aborted: no progress for ${STEP_TIMEOUT_MS / 1000} s`, {
+			cause: error,
+		});
+	} finally {
+		clearTimeout(idleTimer);
+	}
 }
 
 /**
