@@ -54,6 +54,7 @@ export API_TOKEN_SALT=e2e-api-token-salt
 export ADMIN_JWT_SECRET=e2e-admin-jwt-secret
 export JWT_SECRET=e2e-jwt-secret
 export TRANSFER_TOKEN_SALT=e2e-transfer-token-salt
+export ENCRYPTION_KEY=e2e-encryption-key
 export DATABASE_CLIENT=postgres
 export DATABASE_HOST=127.0.0.1
 export DATABASE_PORT="$db_port"

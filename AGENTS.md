@@ -135,7 +135,7 @@ Copy `.env.example` to `.env`. Run `./generate-keys.sh` for empty secrets. Never
 | Group | Variables |
 | --- | --- |
 | Server | `PUBLIC_URL`, `HOST`, `PORT`, `PROXY`, `TRUST_CF_CONNECTING_IP`, `CORS_ORIGINS` (comma-separated front origins, e.g. `https://<domain>`, required in production; unset falls back to `http://localhost:4321`) |
-| Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT` |
+| Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`, `ENCRYPTION_KEY` (`admin.secrets.encryptionKey`: encrypts API tokens at rest so the admin can show them again; keep it once set) |
 | Database | `DATABASE_CLIENT=postgres`, `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_SCHEMA` |
 | R2 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (`https://<account>.eu.r2.cloudflarestorage.com`) |
 | R2 backup | `CRON_SCHEDULE`, `S3_BUCKET` (`<name>-backups`), `BACKUP_KEY_PREFIX` (default `backup-`) |
