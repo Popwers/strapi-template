@@ -93,7 +93,7 @@ Limits live in `config/upload-limits.ts`: 15 MB per file (`UPLOAD_SIZE_LIMIT`, t
 
 `strapi::security` sends no `Strict-Transport-Security`: the Cloudflare zone is the only HSTS source. Helmet sets no `Permissions-Policy`, so `global::permissions-policy` denies camera, geolocation, microphone, payment and USB.
 
-`config/server.ts` sets `proxy: { koa: true, maxIpsCount: 1 }`. Strapi 5 hands Koa only `proxy.koa` (a bare `proxy: true` does nothing), so behind the TLS proxy `X-Forwarded-Proto` makes the admin cookies `Secure`, and the client address is the last `X-Forwarded-For` entry, the one the nearest proxy appended: the login rate limits key on it and a client cannot forge it. `proxy.e2e.ts` checks both. `PROXY=false` turns it off for a server reached without a proxy.
+`config/server.ts` sets `proxy: { koa: true, maxIpsCount: 1 }`. Strapi 5 hands Koa only `proxy.koa` (a bare `proxy: true` does nothing), so behind the TLS proxy `X-Forwarded-Proto` makes the admin cookies `Secure`, and the client address is the last `X-Forwarded-For` entry, the one the nearest proxy appended: the login rate limits key on it and a client cannot forge it. `proxy.e2e.ts` checks both. `PROXY=false` turns it off for a server reached without a proxy. Behind Cloudflare the nearest proxy's address is a Cloudflare edge, shared by many visitors: `TRUST_CF_CONNECTING_IP=true` makes Koa read the client from `CF-Connecting-IP` (`proxy.ipHeader`) instead. Off by default, and only safe when the origin accepts Cloudflare traffic alone (firewall on Cloudflare's ranges, or a Cloudflare Tunnel): a client that reaches the origin directly writes that header and picks its own rate-limit bucket.
 
 `strapi::cors` takes its `origin` from `CORS_ORIGINS` (`env.array`), with `http://localhost:4321` as the fallback. Strapi's default (`*` with credentials) echoes any Origin, and an `origin` that resolves to undefined is treated as `*` too, so never read the variable without a fallback and never put `*` in it. An Origin outside the list gets no `Access-Control-Allow-Origin`; `cors.e2e.ts` checks it on the real server.
 
@@ -134,7 +134,7 @@ Copy `.env.example` to `.env`. Run `./generate-keys.sh` for empty secrets. Never
 
 | Group | Variables |
 | --- | --- |
-| Server | `PUBLIC_URL`, `HOST`, `PORT`, `CORS_ORIGINS` (comma-separated front origins, e.g. `https://<domain>`, required in production; unset falls back to `http://localhost:4321`) |
+| Server | `PUBLIC_URL`, `HOST`, `PORT`, `PROXY`, `TRUST_CF_CONNECTING_IP`, `CORS_ORIGINS` (comma-separated front origins, e.g. `https://<domain>`, required in production; unset falls back to `http://localhost:4321`) |
 | Secrets | `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT` |
 | Database | `DATABASE_CLIENT=postgres`, `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_SCHEMA` |
 | R2 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` (`https://<account>.eu.r2.cloudflarestorage.com`) |
