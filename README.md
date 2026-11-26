@@ -9,7 +9,7 @@ Type `make` for the command list. `vp` delegates to npm (`package-lock.json`).
 After you clone this template, replace the placeholders before you go further.
 
 1. Rename the project. Set `name` in `package.json`. semantic-release reads the repository from the git remote.
-2. Generate secrets. `cp .env.example .env && sh generate-keys.sh` (fills `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`; values are written to `.env` only, never printed).
+2. Generate secrets. `cp .env.example .env && sh generate-keys.sh` (fills `APP_KEYS`, `API_TOKEN_SALT`, `JWT_SECRET`, `ADMIN_JWT_SECRET`, `TRANSFER_TOKEN_SALT`, `ENCRYPTION_KEY`; values are written to `.env` only, never printed).
 3. Set the sender address. `defaultFrom` / `defaultReplyTo` in `config/plugins.ts` (currently `not-reply@your-project.fr`).
 4. Set the backup alert address. `BACKUP_ALERT_EMAIL_TO` gets one e-mail, through the project's SMTP, for each backup run with a failed step.
 5. Install deps and Git hooks. `make install` (`vp i` then `vp config`; staged files get `vp check --fix` on commit, and a push runs `make verify`, plus the e2e suite when app code changed).
