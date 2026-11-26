@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import { assertDurableUploadStorage } from '../config/upload-storage';
 import { runBackup } from './backup';
 import { backupMonitorConfig, monitorBackup } from './backup-monitor';
+import { guardMemberWrites } from './extensions/users-permissions/member-writes';
 import { stampPasswordChanges } from './extensions/users-permissions/password-change';
 import sendError, { sentryCheckIns } from './sentry';
 
@@ -15,6 +16,7 @@ export default {
 
 	async bootstrap({ strapi }: { strapi: Core.Strapi }) {
 		stampPasswordChanges(strapi);
+		guardMemberWrites(strapi);
 		// The upload plugin creates the "API Uploads" folder on the first API upload; two first
 		// uploads at once both insert it and one fails on its unique index. Create it once here.
 		await strapi.plugin('upload').service('api-upload-folder').getAPIUploadFolder();
