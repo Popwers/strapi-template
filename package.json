@@ -82,6 +82,9 @@
   },
   "packageManager": "npm@12.2.2",
   "overrides": {
-    "rollup": "4.66.0"
+    "rollup": "4.66.0",
+    "koa-body": {
+      "zod": "4.6.7"
+    }
   }
 }
